@@ -1,0 +1,76 @@
+import { logger } from "../utils/logger";
+import { eq } from "drizzle-orm";
+import Elysia from "elysia";
+import { db } from "../database";
+import { table } from "../database/schema";
+import { AppState } from "../database/schema/app";
+
+export class AppStateService {
+	instanceId: string;
+	appState!: AppState;
+	constructor() {
+		this.instanceId = crypto.randomUUID();
+		logger.info(`AppState initialized with instanceId: ${this.instanceId}`);
+		this.loadAppState();
+	}
+
+	async loadAppState() {
+		const appState = await db.select().from(table.AppState).limit(1);
+		if (!appState || appState.length === 0 || !appState[0]) {
+			// create new app state
+			await db.insert(table.AppState).values({
+				state: {
+					createNewAdmin: true,
+				},
+			});
+			this.appState = {
+				createNewAdmin: true,
+			};
+			return;
+		}
+		this.appState = appState[0].state;
+	}
+
+	async updateAppState(appState: Partial<AppState>) {
+		await db
+			.update(table.AppState)
+			.set({
+				state: {
+					...this.appState,
+					...appState,
+				},
+			})
+			.where(eq(table.AppState.id, 1));
+		this.appState = {
+			...this.appState,
+			...appState,
+		};
+	}
+
+	async deleteAppState() {
+		await db.delete(table.AppState).where(eq(table.AppState.id, 1));
+		await this.loadAppState();
+	}
+
+	async createAppState() {
+		await db.insert(table.AppState).values({
+			state: {
+				createNewAdmin: false,
+			},
+		});
+		await this.loadAppState();
+	}
+
+	async resetAppState() {
+		await db.delete(table.AppState).where(eq(table.AppState.id, 1));
+		await this.createAppState();
+	}
+
+	async getAppState() {
+		return this.appState;
+	}
+}
+
+export const appStateService = new Elysia({
+	name: "service/app-state",
+}).decorate("appState", new AppStateService());

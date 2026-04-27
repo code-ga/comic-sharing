@@ -9,13 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@comic-sharing/backend": "workspace:*",
     "@elysiajs/eden": "^1.4.9",
-    "elysia": "catalog:",
     "@sinclair/typebox": "catalog:",
+    "@tanstack/react-query": "^5.100.5",
+    "elysia": "catalog:",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "@comic-sharing/backend": "workspace:*"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

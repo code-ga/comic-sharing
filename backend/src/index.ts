@@ -1,7 +1,12 @@
 import cors from "@elysiajs/cors";
 import openapi from "@elysiajs/openapi";
-import { Elysia } from "elysia";
+import { AnyElysia, Elysia } from "elysia";
 import { logger } from "./utils/logger";
+import { generateSeedRoles } from "./utils/role";
+import { getPermissionsGrouped } from "./constants/permissions";
+import { apiRouter } from "./routes";
+
+await generateSeedRoles();
 
 const app = new Elysia()
 	.use(
@@ -17,10 +22,43 @@ const app = new Elysia()
 			documentation: {},
 		}),
 	)
-	.listen(3000);
+	.use(apiRouter);
 
-console.log(
-	`🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
+app.get("/permissions", async (_) => {
+	return {
+		success: true,
+		message: "Permissions fetched successfully",
+		data: getPermissionsGrouped(),
+		timestamp: Date.now(),
+	};
+});
+
+app.get("/route-permissions", async (_ctx) => {
+	const permissions = (app as AnyElysia).routes.map((route) => {
+		// Extract roleAuth from hooks
+		return {
+			method: route.method,
+			path: route.path,
+			permission: (
+				route.hooks.detail as { "x-permission"?: string } | undefined
+			)?.["x-permission"],
+		};
+	});
+	return {
+		success: true,
+		message: "Route permissions fetched successfully",
+		data: permissions,
+		timestamp: Date.now(),
+	};
+});
+
+app.listen(
+	{
+		port: process.env.PORT || 3000,
+	},
+	(app) => {
+		console.log(`🦊 Elysia is running at ${app.hostname}:${app.port}`);
+	},
 );
 
 process.on("uncaughtException", (error) => {
@@ -38,3 +76,9 @@ process.on("unhandledRejection", (reason, promise) => {
 export type App = typeof app;
 export * as databaseTypes from "./database/types";
 export * as requestTypes from "./types";
+export {
+	type Permission,
+	type PermissionFilter,
+	PermissionGroupSchema,
+	RESOURCE_DEFINITIONS,
+} from "./constants/permissions";
