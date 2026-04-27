@@ -1,10 +1,12 @@
 import * as auth from "./auth";
 import * as app from "./app";
+import * as comic from "./comic";
 import { defineRelations } from "drizzle-orm";
 
 export const table = {
 	...auth,
 	...app,
+	...comic,
 } as const;
 
 export const schemaRelations = defineRelations(table, (r) => ({
@@ -28,6 +30,34 @@ export const schemaRelations = defineRelations(table, (r) => ({
 		profile: r.one.profile({
 			from: r.user.id,
 			to: r.profile.userId,
+		}),
+	},
+
+	comics: {
+		author: r.one.profile({
+			from: r.comics.authorId,
+			to: r.profile.id,
+		}),
+		chapters: r.many.chapters({
+			from: r.comics.id,
+			to: r.chapters.comicId,
+		}),
+	},
+	chapters: {
+		comic: r.one.comics({
+			from: r.chapters.comicId,
+			to: r.comics.id,
+		}),
+		pages: r.many.chapterPages({
+			from: r.chapters.id,
+			to: r.chapterPages.chapterId,
+		}),
+	},
+
+	chapterPageSubtitles: {
+		chapterPage: r.one.chapterPages({
+			from: r.chapterPageSubtitles.chapterPageId,
+			to: r.chapterPages.id,
 		}),
 	},
 }));

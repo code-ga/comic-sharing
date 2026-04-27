@@ -6,7 +6,7 @@ import {
 	type PermissionFilter,
 } from "../constants/permissions";
 import { db } from "../database";
-import { auth } from "../libs/auths/auth.config";
+import { auth } from "../libs/auth.config";
 import { logger } from "../utils/logger";
 
 export const authenticationMiddleware = new Elysia({
@@ -61,6 +61,21 @@ export const authenticationMiddleware = new Elysia({
 		detail: {
 			tags: ["auth"],
 			"x-permission": filter, // picked up by /route-permissions endpoint
+		},
+	}),
+
+	optionalAuth: () => ({
+		async resolve({ request: { headers } }) {
+			const session = await auth.api.getSession({ headers });
+			if (!session) return {}; // No auth, but that's okay
+			const profile = await db.query.profile.findFirst({
+				where: { userId: session.user.id },
+			});
+			return {
+				user: session.user,
+				session: session.session,
+				profile,
+			};
 		},
 	}),
 });

@@ -5,6 +5,8 @@ import { logger } from "./utils/logger";
 import { generateSeedRoles } from "./utils/role";
 import { getPermissionsGrouped } from "./constants/permissions";
 import { apiRouter } from "./routes";
+import { loggerMiddleware } from "./middleware/logger";
+import { OpenAPI } from "./libs/openApi";
 
 await generateSeedRoles();
 
@@ -15,11 +17,14 @@ const app = new Elysia()
 			credentials: true,
 		}),
 	)
-
+	.use(loggerMiddleware)
 	.get("/", () => "Hello Elysia")
 	.use(
 		openapi({
-			documentation: {},
+			documentation: {
+				components: await OpenAPI.components,
+				paths: await OpenAPI.getPaths(),
+			},
 		}),
 	)
 	.use(apiRouter);

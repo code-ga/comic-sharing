@@ -1,0 +1,94 @@
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { pgTable, serial, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+
+export const comics = pgTable("comic", {
+	id: serial("id").primaryKey(),
+
+	authorId: text("author_id").notNull(),
+
+	title: text("title").notNull(),
+	description: text("description"),
+
+	chapterIds: text("chapter_ids").notNull().array().default([]),
+
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull(),
+});
+
+export type ComicInsert = InferInsertModel<typeof comics>;
+export type Comic = InferSelectModel<typeof comics>;
+
+export const chapters = pgTable("chapter", {
+	id: serial("id").primaryKey(),
+	comicId: serial("comic_id")
+		.notNull()
+		.references(() => comics.id, { onDelete: "cascade" }),
+
+	authorId: text("author_id").notNull(),
+
+	title: text("title").notNull(),
+
+	pages: text("pages").notNull().array().default([]),
+
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull(),
+});
+
+export type Chapter = InferSelectModel<typeof chapters>;
+export type ChapterInsert = InferInsertModel<typeof chapters>;
+
+export const chapterPages = pgTable("chapter_pages", {
+	id: serial("id").primaryKey(),
+	chapterId: serial("chapter_id")
+		.notNull()
+		.references(() => chapters.id, { onDelete: "cascade" }),
+
+	authorId: text("author_id").notNull(),
+
+	/**
+	 * Hashing is used to ensure the integrity of the page data. It can be a hash of the page content or a unique identifier for the page. This helps in verifying that the page data has not been tampered with and can be used for caching purposes.
+	 */
+	hashing: text("hashing").notNull(),
+	pageNumber: serial("page_number").notNull(),
+	imageUrl: text("image_url").notNull(),
+	content: text("content").notNull(),
+
+	subtitle: text("subtitle").notNull().array().default([]),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull(),
+});
+
+export type ChapterPage = InferSelectModel<typeof chapterPages>;
+export type ChapterPageInsert = InferInsertModel<typeof chapterPages>;
+
+export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
+	id: serial("id").primaryKey(),
+	chapterPageId: serial("chapter_page_id")
+		.notNull()
+		.references(() => chapterPages.id, { onDelete: "cascade" }),
+
+	authorId: text("author").notNull(),
+
+	boxs: jsonb("box").notNull().$type<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+		text: string;
+		translatedText: { [key: string]: string }; // language code as key and translated text as value
+	}>(),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type ChapterPageSubtitle = InferSelectModel<
+	typeof chapterPageSubtitles
+>;

@@ -7,8 +7,16 @@ A full-stack comic sharing platform built as a monorepo with TypeScript, using B
 
 ### Monorepo Structure
 - **Root**: Bun workspace configuration managing shared dependencies
-- **Frontend**: Next.js 16 application (workspace: `@comic-sharing/frontend`)
+- **Frontend**: Next.js 16 application (workspace: `@comic-sharing/frontend`) with API route proxy at `/api/*`
 - **Backend**: Elysia.js API server (workspace: `@comic-sharing/backend`)
+
+### Request Flow
+1. Client → Frontend (same-origin): `GET /api/permissions` → Next.js API route at `frontend/app/api/[...path]/route.ts`
+2. Frontend proxy → Backend: Forwards request to `BACKEND_TARGET_URL` (server-side only)
+3. Backend → Database: Elysia routes handle business logic and Drizzle queries
+4. Response flows back through the proxy to the client
+
+This proxy hides the actual backend host from the browser, allows changing backend URL via environment variables, and avoids CORS complications.
 
 ### Backend Stack
 - **Framework**: Elysia.js (web framework)
@@ -21,10 +29,14 @@ A full-stack comic sharing platform built as a monorepo with TypeScript, using B
 - **API Documentation**: OpenAPI/Swagger via `@elysiajs/openapi`
 
 ### Frontend Stack
-- **Framework**: Next.js 16 (App Router)
+- **Framework**: Next.js 16 (App Router) with server-side API routes for proxying
 - **Styling**: Tailwind CSS v4
-- **API Client**: `@elysiajs/eden` for type-safe API calls to backend
+- **API Client**: `@elysiajs/eden` for type-safe API calls to `/api/*` (relative paths)
 - **Shared Types**: `@comic-sharing/backend` workspace dependency
+
+### Configuration
+- **Backend target URL** (`BACKEND_TARGET_URL`): Server-side env var that points to the real backend (e.g., `http://localhost:3001` or `http://backend:3001` in Docker). Not exposed to the browser.
+- **Frontend constant** (`frontend/constants.ts`): `BACKEND_URL = '/api/'` — used by Eden client to call the proxy.
 
 ## Key Files & Responsibilities
 
@@ -48,32 +60,43 @@ A full-stack comic sharing platform built as a monorepo with TypeScript, using B
 - `backend/drizzle.config.ts` - Drizzle Kit configuration for migrations
 - `backend/package.json` - Workspace dependencies (bun-types, drizzle-kit)
 
-### Frontend (`frontend/`)
+#### Frontend (`frontend/`)
 
-#### Application
+##### Application
 - `frontend/app/layout.tsx` - Root layout with Geist fonts
 - `frontend/app/page.tsx` - Landing page
-- `frontend/next.config.ts` - Next.js configuration
+- `frontend/app/api/[...path]/route.ts` - Catch-all API proxy that forwards requests to `BACKEND_TARGET_URL` and returns backend responses (status, body, headers), including cookie passthrough.
 
-#### Shared Utilities
-- `frontend/lib/api.ts` - Eden treaty client for type-safe backend API calls
+##### Shared Utilities
+- `frontend/lib/api.ts` - Eden treaty client configured with `BACKEND_URL = '/api/'` for type-safe backend API calls via the proxy
 - `frontend/lib/logger.ts` - Console-based logger
-- `frontend/constants.ts` - Environment-based configuration (BACKEND_URL, FRONTEND_URL)
+- `frontend/constants.ts` - Frontend configuration; `BACKEND_URL` points to `/api/` (relative). No direct backend host exposed to client.
 
-#### Styling
+##### Configuration
+- `frontend/next.config.ts` - Next.js configuration
+- `frontend/package.json` - Dependencies including `@comic-sharing/backend` workspace
+
+##### Styling
 - Tailwind CSS v4 with PostCSS
 
 ### Root Configuration
 - `package.json` - Bun workspace configuration with catalog dependencies (elysia, @sinclair/typebox)
-- `docker-compose.yaml` - Multi-container setup (PostgreSQL, Backend, Frontend)
-- `.env.example` - Environment variable template
+- `docker-compose.yaml` - Multi-container setup (PostgreSQL, Backend, Frontend). The `frontend` service receives `BACKEND_TARGET_URL` env var.
+- `.env.example` - Environment variable template including `BACKEND_TARGET_URL` for the frontend proxy.
 - `biome.json` - Code formatting/linting (tabs, double quotes)
+
+## Environment Variables
+
+| Variable | Scope | Description | Example |
+|----------|-------|-------------|---------|
+| `BACKEND_TARGET_URL` | Server-side (frontend) | Target URL where the backend is running. Used by the Next.js API proxy at `/api/*`. | `http://localhost:3001` or `http://backend:3001` |
+| `POSTGRES_*`, `DATABASE_URL` | Backend/DB | Database connection configuration | — |
+| `PORT` | Backend | Port the Elysia server listens on | `3001` |
+| `NODE_ENV` | Backend | Environment mode | `production` |
 
 ## Data Flow
 
-1. **Frontend** → **Backend**: Type-safe API calls via Eden treaty client
-   - The `@elysiajs/eden` treaty client generates TypeScript types from the Elysia app type
-   - Shared types come from `@comic-sharing/backend` workspace
+1. **Frontend** → **Proxy** → **Backend**: Type-safe API calls via Eden treaty use relative path `/api/...` which hit Next.js API route `frontend/app/api/[...path]/route.ts`. This route forwards the request to the backend URL defined by the server-side `BACKEND_TARGET_URL` and relays the response back to the client.
 
 2. **Backend** → **Database**: Drizzle ORM queries
    - Schemas defined with Drizzle pg-core
@@ -110,17 +133,20 @@ A full-stack comic sharing platform built as a monorepo with TypeScript, using B
 bun install
 
 # Development
-cd backend && bun run dev      # Backend on :3000
-cd frontend && bun run dev     # Frontend on :3000
+cd backend && bun run dev      # Backend on :3001
+cd frontend && BACKEND_TARGET_URL=http://localhost:3001 bun run dev     # Frontend on :3000 with proxy
 
 # Database
 bun run db:push               # Push schema to database
 bun run db:migrate            # Run migrations
 bun run db:studio             # Drizzle Studio
 
-# Production
-bun run build                 # Build both packages
-bun run start                 # Start backend
+# Production (Docker)
+docker compose up
+
+# Notes
+- The frontend Eden client calls '/api/*' → Next.js API route → BACKEND_TARGET_URL.
+- Set BACKEND_TARGET_URL as a server-side environment variable. It is never exposed to browsers.
 ```
 
 ## Technical Decisions
@@ -138,3 +164,7 @@ bun run start                 # Start backend
 - Workspace dependencies are managed via Bun's catalog feature
 - Database URL falls back to `memory://` (PGlite in-memory) when not in production
 - Error handling middleware configured for uncaught exceptions and unhandled rejections
+- The frontend API proxy (`frontend/app/api/[...path]/route.ts`) enforces server-side routing; the real backend host is never exposed to browser clients. This simplifies CORS and allows backend URL changes without frontend deploy.
+- When running locally, set `BACKEND_TARGET_URL` in your shell: `export BACKEND_TARGET_URL=http://localhost:3001` (Unix) or `$env:BACKEND_TARGET_URL="http://localhost:3001"` (PowerShell) before starting `bun dev` in the frontend directory.
+- In Docker Compose, the variable is injected into the frontend container automatically.
+- The proxy uses Node.js runtime (`export const runtime = 'nodejs'`) to ensure `process.env` access and consistent server-side fetch behavior.

@@ -206,8 +206,7 @@ export const roleRoute = new Elysia({ prefix: "/role" })
 									(pg) => pg.resource === resource,
 								);
 								if (
-									!resourcePermissions ||
-									!resourcePermissions.permissions.find(
+									!resourcePermissions?.permissions.find(
 										(p) => p.action === action,
 									)
 								) {
