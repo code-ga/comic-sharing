@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import Elysia from "elysia";
 import {
 	evaluatePermissionFilter,
@@ -27,11 +26,12 @@ export const authenticationMiddleware = new Elysia({
 					userId: session.user.id,
 				},
 			});
-			if (config.requiredProfile && !profile) return status(401);
+			if (config.requiredProfile && !profile)
+				return status(401, { success: false, message: "Unauthorized" });
 			return {
 				user: session.user,
 				session: session.session,
-				profile,
+				profile: profile,
 			};
 		},
 	}),
@@ -64,7 +64,7 @@ export const authenticationMiddleware = new Elysia({
 		},
 	}),
 
-	optionalAuth: () => ({
+	optionalAuth: {
 		async resolve({ request: { headers } }) {
 			const session = await auth.api.getSession({ headers });
 			if (!session) return {}; // No auth, but that's okay
@@ -74,8 +74,8 @@ export const authenticationMiddleware = new Elysia({
 			return {
 				user: session.user,
 				session: session.session,
-				profile,
+				profile: profile || null,
 			};
 		},
-	}),
+	},
 });

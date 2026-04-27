@@ -57,6 +57,17 @@ export const schemaRelations = defineRelations(table, (r) => ({
 		}),
 	},
 
+	chapterPages: {
+		subtitle: r.many.chapterPageSubtitles({
+			from: r.chapterPages.id,
+			to: r.chapterPageSubtitles.chapterPageId,
+		}),
+		chapter: r.one.chapters({
+			from: r.chapterPages.chapterId,
+			to: r.chapters.id,
+		}),
+	},
+
 	chapterPageSubtitles: {
 		chapterPage: r.one.chapterPages({
 			from: r.chapterPageSubtitles.chapterPageId,

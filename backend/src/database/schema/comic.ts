@@ -1,28 +1,39 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { pgTable, serial, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import {
+	pgTable,
+	serial,
+	text,
+	timestamp,
+	jsonb,
+	index,
+	integer,
+} from "drizzle-orm/pg-core";
 
-export const comics = pgTable("comic", {
-	id: serial("id").primaryKey(),
+export const comics = pgTable(
+	"comic",
+	{
+		id: serial("id").primaryKey(),
 
-	authorId: text("author_id").notNull(),
+		authorId: text("author_id").notNull(),
 
-	title: text("title").notNull(),
-	description: text("description"),
+		title: text("title").notNull(),
+		description: text("description"),
 
-	chapterIds: text("chapter_ids").notNull().array().default([]),
+		chapterIds: text("chapter_ids").notNull().array().default([]),
 
-	createdAt: timestamp("created_at").defaultNow().notNull(),
-	updatedAt: timestamp("updated_at")
-		.defaultNow()
-		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
-}, table => [
-	index("comics_updated_at_idx").on(table.updatedAt),
-	index("comics_created_at_idx").on(table.createdAt),
-	index("comics_updated_at_id_idx").on(table.updatedAt, table.id),
-	index("comics_created_at_id_idx").on(table.createdAt, table.id)
-]);
-
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("comics_updated_at_idx").on(table.updatedAt),
+		index("comics_created_at_idx").on(table.createdAt),
+		index("comics_updated_at_id_idx").on(table.updatedAt, table.id),
+		index("comics_created_at_id_idx").on(table.createdAt, table.id),
+	],
+);
 
 export type ComicInsert = InferInsertModel<typeof comics>;
 export type Comic = InferSelectModel<typeof comics>;
@@ -34,10 +45,11 @@ export const chapters = pgTable("chapter", {
 		.references(() => comics.id, { onDelete: "cascade" }),
 
 	authorId: text("author_id").notNull(),
+	index: integer("index").notNull().default(0),
 
 	title: text("title").notNull(),
 
-	pages: text("pages").notNull().array().default([]),
+	pageIds: text("page_ids").notNull().array().default([]),
 
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
@@ -63,9 +75,13 @@ export const chapterPages = pgTable("chapter_pages", {
 	hashing: text("hashing").notNull(),
 	pageNumber: serial("page_number").notNull(),
 	imageUrl: text("image_url").notNull(),
+	/**
+	 * If this is novel we just saving content.
+	 * If manga or non-text media we going to using ocr or like that
+	 */
 	content: text("content").notNull(),
 
-	subtitle: text("subtitle").notNull().array().default([]),
+	subtitleIds: text("subtitle_ids").notNull().array().default([]),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -82,7 +98,7 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 		.notNull()
 		.references(() => chapterPages.id, { onDelete: "cascade" }),
 
-	authorId: text("author").notNull(),
+	authorId: text("author_id").notNull(),
 
 	boxs: jsonb("box").notNull().$type<{
 		x: number;
@@ -95,6 +111,4 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export type ChapterPageSubtitle = InferSelectModel<
-	typeof chapterPageSubtitles
->;
+export type ChapterPageSubtitle = InferSelectModel<typeof chapterPageSubtitles>;

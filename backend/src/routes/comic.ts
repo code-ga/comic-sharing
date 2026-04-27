@@ -102,9 +102,7 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 	)
 	.guard(
 		{
-			userAuth: {
-				requiredProfile: true,
-			},
+			userAuth: { requiredProfile: true },
 		},
 		(app) =>
 			app
