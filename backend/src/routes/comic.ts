@@ -7,7 +7,7 @@ import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
 
-export const clusterRoute = new Elysia({ prefix: "/cluster" })
+export const comicsRoute = new Elysia({ prefix: "/comics" })
 	.use(authenticationMiddleware)
 	.guard({ optionalAuth: true }, (app) =>
 		app
@@ -106,7 +106,181 @@ export const clusterRoute = new Elysia({ prefix: "/cluster" })
 				requiredProfile: true,
 			},
 		},
-		(app) => app,
+		(app) =>
+			app
+				.post(
+					"/",
+					async (ctx) => {
+						const { title, description } = ctx.body;
+						const userId = ctx.profile?.id;
+						if (!userId) {
+							return ctx.status(401, {
+								success: false,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+							});
+						}
+						const [newComic] = await db
+							.insert(schema.comics)
+							.values({
+								title,
+								description,
+								authorId: userId,
+							})
+							.returning();
+
+						return ctx.status(201, {
+							success: true,
+							message: "Comic created successfully",
+							data: newComic,
+							timestamp: Date.now(),
+						});
+					},
+					{
+						detail: {
+							description: "Create a new comic",
+						},
+						body: Type.Object({
+							title: Type.String(),
+							description: Type.String(),
+						}),
+						response: {
+							201: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),
+							401: errorResponseSchema,
+							400: errorResponseSchema,
+							500: errorResponseSchema,
+						},
+					},
+				)
+				.put(
+					"/:id",
+					async (ctx) => {
+						const { id } = ctx.params;
+						const { title, description } = ctx.body;
+						const userId = ctx.profile?.id;
+						if (!userId) {
+							return ctx.status(401, {
+								success: false,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+							});
+						}
+						const comic = await db.query.comics.findFirst({
+							where: {
+								id: Number(id),
+							},
+						});
+						if (!comic) {
+							return ctx.status(404, {
+								success: false,
+								message: "Comic not found",
+								timestamp: Date.now(),
+							});
+						}
+						if (comic.authorId !== userId) {
+							return ctx.status(403, {
+								success: false,
+								message: "Forbidden",
+								timestamp: Date.now(),
+							});
+						}
+						const [updatedComic] = await db
+							.update(schema.comics)
+							.set({
+								title: title ?? comic.title,
+								description: description ?? comic.description,
+							})
+							.where(eq(schema.comics.id, Number(id)))
+							.returning();
+						return ctx.status(200, {
+							success: true,
+							message: "Comic updated successfully",
+							data: updatedComic,
+							timestamp: Date.now(),
+						});
+					},
+					{
+						detail: {
+							description: "Update a comic",
+						},
+						params: Type.Object({
+							id: Type.String(),
+						}),
+						body: Type.Partial(
+							Type.Object({
+								title: Type.String(),
+								description: Type.String(),
+							}),
+						),
+						response: {
+							200: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),
+							401: errorResponseSchema,
+							403: errorResponseSchema,
+							404: errorResponseSchema,
+							400: errorResponseSchema,
+							500: errorResponseSchema,
+						},
+					},
+				)
+				.delete(
+					"/:id",
+					async (ctx) => {
+						const { id } = ctx.params;
+						const userId = ctx.profile?.id;
+						if (!userId) {
+							return ctx.status(401, {
+								success: false,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+							});
+						}
+						const comic = await db.query.comics.findFirst({
+							where: {
+								id: Number(id),
+							},
+						});
+						if (!comic) {
+							return ctx.status(404, {
+								success: false,
+								message: "Comic not found",
+								timestamp: Date.now(),
+							});
+						}
+						if (comic.authorId !== userId) {
+							return ctx.status(403, {
+								success: false,
+								message: "Forbidden",
+								timestamp: Date.now(),
+							});
+						}
+						const [result] = await db
+							.delete(schema.comics)
+							.where(eq(schema.comics.id, Number(id)))
+							.returning();
+						return ctx.status(200, {
+							success: true,
+							message: "Comic deleted successfully",
+							timestamp: Date.now(),
+							data: result,
+						});
+					},
+					{
+						detail: {
+							description: "Delete a comic",
+						},
+						params: Type.Object({
+							id: Type.String(),
+						}),
+						response: {
+							200: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),
+							401: errorResponseSchema,
+							403: errorResponseSchema,
+							404: errorResponseSchema,
+							400: errorResponseSchema,
+							500: errorResponseSchema,
+						},
+					},
+				),
 	);
 
-export type ClusterRoute = typeof clusterRoute;
+export type comicsRoute = typeof comicsRoute;

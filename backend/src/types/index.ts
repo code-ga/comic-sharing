@@ -36,6 +36,21 @@ export type PaginatedResponse<T extends TSchema> = Static<
 	ReturnType<typeof paginatedResponseSchema<T>>
 >;
 
+export const cursorPaginatedResponseSchema = <T extends TSchema>(dataSchema: T) => {
+	return baseResponseSchema(
+		t.Object({
+			items: t.Array(dataSchema),
+			total: t.Number(),
+			limit: t.Number(),
+			nextCursor: t.Optional(t.String()),
+		}),
+	);
+};
+
+export type CursorPaginatedResponse<T extends TSchema> = Static<
+	ReturnType<typeof cursorPaginatedResponseSchema<T>>
+>;
+
 export const errorResponseSchema = t.Object({
 	success: t.Boolean({ default: false }),
 	message: t.String(),

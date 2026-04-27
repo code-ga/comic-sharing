@@ -54,7 +54,13 @@ This proxy hides the actual backend host from the browser, allows changing backe
 #### Server Layer
 - `backend/src/index.ts` - Elysia app setup with CORS, OpenAPI, and error handlers
 - `backend/src/utils/logger.ts` - Pino-based logger with file/line caller tracking
-- `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, errorResponse)
+- `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, cursorPaginatedResponse, errorResponse)
+- `backend/src/routes/comic.ts` - Comic cluster routes with cursor-based pagination (keyset pagination)
+  - `GET /cluster/latest-update` — Comics ordered by `updated_at DESC` with cursor
+  - `GET /cluster/recently-added` — Comics ordered by `created_at DESC` with cursor
+  - `GET /cluster/recommended` — Same as latest update (placeholder for recommendation algorithm)
+  - Cursor encoding: base64-encoded JSON `{ ts: ISO string, id: number }`
+  - Database: Uses composite index `(updated_at, id)` and `(created_at, id)` for O(1) pagination efficiency
 
 #### Configuration
 - `backend/drizzle.config.ts` - Drizzle Kit configuration for migrations
@@ -118,11 +124,10 @@ This proxy hides the actual backend host from the browser, allows changing backe
 
 ### Missing Features
 - **Authentication system**: Login, registration, session management
-- **Comic management**: CRUD operations for comics
+- **Comic management**: Full CRUD operations (create, update, delete comics and chapters)
 - **File upload**: Comic cover images, comic pages
 - **User profiles**: Profile management
 - **Search/Filters**: Comic discovery
-- **API Routes**: Elysia route handlers (only root route exists)
 - **Database migrations**: Drizzle migration files not generated
 - **Frontend pages**: Actual application pages beyond landing
 
@@ -157,6 +162,55 @@ docker compose up
 4. **TypeBox**: Runtime type system compatible with TypeScript static types
 5. **PGlite**: Embedded Postgres for development (no external database needed)
 6. **Tailwind v4**: New JIT-based engine with improved performance
+
+## Comic API
+
+### Cursor-Based Pagination (Keyset Pagination)
+All cluster comic endpoints use efficient cursor-based pagination instead of `OFFSET`. This provides consistent performance even with millions of rows by leveraging indexed column comparisons.
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit`   | number | Items per page (default: `10`, min: `1`, max: `100`) |
+| `cursor`  | string | Opaque base64-encoded cursor from previous response's `nextCursor` |
+| *(no `page`)* | — | Page number is not used — navigation is purely cursor-based |
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "message": "Comics fetched successfully",
+  "data": {
+    "items": [...],        // Array of comic objects
+    "total": 150,          // Total number of comics in database
+    "limit": 10,           // Items per page requested
+    "nextCursor": "eyJ0cyI6IjIwMjYtMDQtMjciLCJpZCI6MTIzfQ==" // Present if more pages exist
+  },
+  "timestamp": 1234567890
+}
+```
+
+The `nextCursor` encodes composite key `(updated_at, id)` (or `(created_at, id)`). To fetch the next page, pass this cursor value. When `nextCursor` is absent, you've reached the last page.
+
+**How it works:**
+- Query uses composite `(timestamp_column, id)` comparison: `(col1, id) < (cursor_ts, cursor_id)`
+- Index used: `(updated_at, id)` or `(created_at, id)` — both columns in ascending order
+- Database performs index range scan — avoids `OFFSET`'s linear scan cost
+- Sorting: `ORDER BY column DESC, id DESC` ensures deterministic ordering
+
+**Example flow:**
+1. `GET /cluster/latest-update?limit=10` → returns 10 items + `nextCursor`
+2. `GET /cluster/latest-update?limit=10&cursor=<nextCursor>` → returns next 10 items
+3. Repeat until `nextCursor` is `null`
+
+### Available Comic Endpoints
+| Endpoint | Order By Column | Notes |
+|----------|----------------|-------|
+| `GET /cluster/latest-update` | `updated_at DESC, id DESC` | Latest updated comics |
+| `GET /cluster/recently-added` | `created_at DESC, id DESC` | Recently added comics |
+| `GET /cluster/recommended` | `updated_at DESC, id DESC` | Placeholder — currently same as latest update |
+
+Note: Chapters are not included in the comic response. Frontend should request chapters separately using comic-specific endpoints (to be implemented).
 
 ## Notes
 

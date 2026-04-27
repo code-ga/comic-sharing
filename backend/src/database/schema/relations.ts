@@ -6,7 +6,10 @@ import { defineRelations } from "drizzle-orm";
 export const table = {
 	...auth,
 	...app,
-	...comic,
+	comics: comic.comics,
+	chapters: comic.chapters,
+	chapterPages: comic.chapterPages,
+	chapterPageSubtitles: comic.chapterPageSubtitles,
 } as const;
 
 export const schemaRelations = defineRelations(table, (r) => ({

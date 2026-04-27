@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { pgTable, serial, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
 
 export const comics = pgTable("comic", {
 	id: serial("id").primaryKey(),
@@ -16,7 +16,13 @@ export const comics = pgTable("comic", {
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
-});
+}, table => [
+	index("comics_updated_at_idx").on(table.updatedAt),
+	index("comics_created_at_idx").on(table.createdAt),
+	index("comics_updated_at_id_idx").on(table.updatedAt, table.id),
+	index("comics_created_at_id_idx").on(table.createdAt, table.id)
+]);
+
 
 export type ComicInsert = InferInsertModel<typeof comics>;
 export type Comic = InferSelectModel<typeof comics>;
