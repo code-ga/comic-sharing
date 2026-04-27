@@ -1,0 +1,21 @@
+import "dotenv/config";
+import { defineConfig } from "drizzle-kit";
+import path from "node:path";
+
+export default defineConfig({
+	out: "./drizzle",
+	schema: "./src/database/schema.ts",
+	dialect: "postgresql",
+	...(process.env.NODE_ENV === "production"
+		? {
+				dbCredentials: {
+					url: process.env.DATABASE_URL!,
+				},
+			}
+		: {
+				dbCredentials: {
+					url: path.join(__dirname, "dev-db"),
+				},
+				driver: "pglite",
+			}),
+});
