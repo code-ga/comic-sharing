@@ -6,7 +6,7 @@ import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
 import { table as schema } from "../database/schema";
-import { uploadImages } from "../utils/files";
+import { removeImage, uploadImages } from "../utils/files";
 
 export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 	.use(authenticationMiddleware)
@@ -49,7 +49,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 				async (ctx) => {
 					const chapterPage = await db.query.chapterPages.findFirst({
 						where: {
-							id: Number(ctx.params["id"]),
+							id: Number(ctx.params.id),
 						},
 						with: {
 							subtitle: true,
@@ -266,13 +266,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 									),
 								);
 						}
+						await removeImage(deleted.map((doc) => doc.imageUrl));
 
 						return deleted[0];
 					});
 
 					return ctx.status(200, {
 						success: true,
-						message: "Chapter page deleted successfully",
+						message:
+							"Chapter page deleted successfully \n We promised that image that remove via this endpoint will be remove from all cdn and database of us",
 						data: deletedPage,
 						timestamp: Date.now(),
 					});
@@ -342,9 +344,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							.where(
 								and(
 									eq(schema.chapterPages.chapterId, firstChapterId),
-									...(pageIds.map((id) =>
-										eq(schema.chapterPages.id, id),
-									) as any),
+									...pageIds.map((id) => eq(schema.chapterPages.id, id)),
 								),
 							)
 							.returning();
@@ -367,12 +367,14 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							}
 						}
 
+						await removeImage(deleted.map((doc) => doc.imageUrl));
+
 						return deleted;
 					});
 
 					return ctx.status(200, {
 						success: true,
-						message: `${deletedPages.length} chapter pages deleted successfully`,
+						message: `${deletedPages.length} chapter pages deleted successfully \n We promised that image that remove via this endpoint will be remove from all cdn and database of us`,
 						data: deletedPages,
 						timestamp: Date.now(),
 					});
