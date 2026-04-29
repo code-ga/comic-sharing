@@ -34,7 +34,7 @@ EXPOSE 3001
 ENV NODE_ENV=production
 
 # Use the built-in 'bun' user for security
-USER bun
+# USER bun
 RUN chmod +x backend/entrypoint.sh
 
 # Run the application
