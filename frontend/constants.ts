@@ -1,5 +1,5 @@
 import { logger } from "./lib/logger";
-export const BACKEND_URL = '/api/';
+export const BACKEND_URL = "http://localhost:3001";
 export const FRONTEND_URL =
-	import.meta.env.VITE_APP_URL || "http://localhost:3000";
+	process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 logger.info(FRONTEND_URL);

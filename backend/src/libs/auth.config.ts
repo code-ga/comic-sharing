@@ -1,6 +1,6 @@
 import { betterAuth, type CookieOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { openAPI } from "better-auth/plugins";
+import { bearer, openAPI } from "better-auth/plugins";
 import { FRONTEND_URLs } from "../constants";
 import { db } from "../database";
 import { account, session, user, verification } from "../database/schema/auth";
@@ -44,7 +44,7 @@ export const auth = betterAuth({
 		];
 	},
 	secret: process.env.BETTER_AUTH_SECRET!,
-	plugins: [openAPI()],
+	plugins: [openAPI(), bearer()],
 	advanced: {
 		cookies: {
 			session_token: {

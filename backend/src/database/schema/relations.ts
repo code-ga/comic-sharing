@@ -76,3 +76,5 @@ export const schemaRelations = defineRelations(table, (r) => ({
 	},
 }));
 export type Table = typeof table;
+
+export default table

@@ -59,7 +59,7 @@ app.get("/route-permissions", async (_ctx) => {
 
 app.listen(
 	{
-		port: process.env.PORT || 3000,
+		port: process.env.PORT || 3001,
 	},
 	(app) => {
 		console.log(`🦊 Elysia is running at ${app.hostname}:${app.port}`);

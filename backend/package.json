@@ -24,6 +24,7 @@
     "pino": "^10.3.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.4.5",
     "bun-types": "latest",
     "drizzle-kit": "^0.31.10"
   },
