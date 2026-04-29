@@ -38,4 +38,4 @@ ENV NODE_ENV=production
 # RUN chmod +x backend/entrypoint.sh
 
 # Run the application
-CMD ["ls -la","bash", "backend/entrypoint.sh"]
+CMD ["bash", "backend/entrypoint.sh"]
