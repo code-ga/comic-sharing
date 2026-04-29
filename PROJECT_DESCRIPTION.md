@@ -97,6 +97,7 @@ This proxy hides the actual backend host from the browser, allows changing backe
 
 ##### Styling
 - Tailwind CSS v4 with PostCSS
+- Dark mode via `prefers-color-scheme` using CSS custom properties (`--background`, `--foreground`) mapped to Tailwind theme tokens (`bg-background`, `text-foreground`, etc.) for automatic light/dark theming.
 
 ### Root Configuration
 - `package.json` - Bun workspace configuration with catalog dependencies (elysia, @sinclair/typebox)
@@ -282,7 +283,7 @@ Note: Chapters are not included in the comic response. Frontend should request c
 - When running locally, set `BACKEND_TARGET_URL` in your shell: `export BACKEND_TARGET_URL=http://localhost:3001` (Unix) or `$env:BACKEND_TARGET_URL="http://localhost:3001"` (PowerShell) before starting `bun dev` in the frontend directory.
 - In Docker Compose, the variable is injected into the frontend container automatically.
 - The proxy uses Node.js runtime (`export const runtime = 'nodejs'`) to ensure `process.env` access and consistent server-side fetch behavior.
-
+- Frontend now supports dark mode: dashboard card uses `bg-background` and protected layout header uses `bg-background/80` (theme-aware) to adapt to system dark/light preferences (implemented in `frontend/app/(protected)/dashboard/page.tsx` and `frontend/app/(protected)/layout.tsx`).
 ## Authentication System
 
 ### Overview

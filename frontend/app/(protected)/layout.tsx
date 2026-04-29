@@ -1,13 +1,10 @@
 "use client";
 
-import type { Metadata } from "next";
+// import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "./globals.css";
-import { useState } from "react";
+
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -19,18 +16,16 @@ const geistMono = Geist_Mono({
 	subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-	title: "ComicShare",
-	description: "Share and discover comics",
-};
+// export const metadata: Metadata = {
+// 	title: "ComicShare",
+// 	description: "Share and discover comics",
+// };
 
 export default function ProtectedLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const pathname = usePathname();
-	const [queryClient, _setQueryClient] = useState(() => new QueryClient());
 	const { session: userSession, signOut: signOutMutate } = useAuth();
 
 	return (
@@ -39,8 +34,7 @@ export default function ProtectedLayout({
 			className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
 		>
 			<body className="min-h-full flex flex-col">
-				<QueryClientProvider client={queryClient}>
-					<header className="bg-white/80 backdrop-blur-sm border-b border-secondary">
+					<header className="bg-background/80 backdrop-blur-sm border-b border-border">
 						<div className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8">
 							{/* Logo */}
 							<Link href="/" className="flex items-center space-x-3">
@@ -98,7 +92,6 @@ export default function ProtectedLayout({
 						</div>
 					</header>
 					<main className="flex-1">{children}</main>
-				</QueryClientProvider>
 			</body>
 		</html>
 	);

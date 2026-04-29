@@ -7,7 +7,7 @@ export default function DashboardPage() {
 
 	return (
 		<div className="max-w-4xl mx-auto p-6">
-			<div className="bg-white rounded-lg shadow-sm border border-border p-6">
+			<div className="bg-background rounded-lg shadow-sm border border-border p-6">
 				<h1 className="text-2xl font-bold mb-4">Dashboard</h1>
 				<div className="p-4 bg-muted/50 rounded-lg">
 					<p className="text-sm text-muted-foreground mb-1">User Name</p>
