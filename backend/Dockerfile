@@ -35,8 +35,7 @@ ENV NODE_ENV=production
 
 # Use the built-in 'bun' user for security
 USER bun
-COPY ./entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x backend/entrypoint.sh
 
 # Run the application
-CMD ["/entrypoint.sh"]
+CMD ["ls -la","bash", "backend/entrypoint.sh"]
