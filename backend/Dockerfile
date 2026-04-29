@@ -35,6 +35,8 @@ ENV NODE_ENV=production
 
 # Use the built-in 'bun' user for security
 USER bun
+COPY ./docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Run the application
-CMD ["bun", "run", "start"]
+CMD ["/entrypoint.sh"]
