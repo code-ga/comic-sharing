@@ -142,7 +142,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						});
 
 						// Determine insertion position (cannot exceed current length)
-						let insertionPosition = Math.min(
+						const insertionPosition = Math.min(
 							startPostion,
 							existingPages.length,
 						);

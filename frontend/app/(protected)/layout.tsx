@@ -4,7 +4,8 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -16,17 +17,49 @@ const geistMono = Geist_Mono({
 	subsets: ["latin"],
 });
 
-// export const metadata: Metadata = {
-// 	title: "ComicShare",
-// 	description: "Share and discover comics",
-// };
-
 export default function ProtectedLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const { session: userSession, signOut: signOutMutate } = useAuth();
+	const { 
+		session: userSession, 
+		sessionLoading,
+		profile, 
+		profileLoading,
+		hasProfile,
+		signOut: signOutMutate 
+	} = useAuth();
+	const pathname = usePathname();
+	const router = useRouter();
+
+	useEffect(() => {
+		if (!sessionLoading && !profileLoading) {
+			// If not logged in, redirect to login (handled by better-auth usually, but good to be explicit if needed)
+			// But here we assume the user IS logged in because they are in (protected)
+			
+			if (!userSession) {
+				router.push("/login");
+			} else if (!hasProfile && pathname !== "/onboarding") {
+				router.push("/onboarding");
+			} else if (hasProfile && pathname === "/onboarding") {
+				router.push("/dashboard");
+			}
+		}
+	}, [userSession, sessionLoading, profileLoading, hasProfile, pathname, router]);
+
+	if (sessionLoading || profileLoading) {
+		return (
+			<html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+				<body className="h-full flex items-center justify-center bg-background">
+					<div className="flex flex-col items-center gap-4">
+						<div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+						<p className="text-muted-foreground font-medium animate-pulse">Initializing experience...</p>
+					</div>
+				</body>
+			</html>
+		);
+	}
 
 	return (
 		<html

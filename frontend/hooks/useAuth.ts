@@ -16,6 +16,19 @@ export const useAuth = () => {
 		},
 	});
 
+	const profileQuery = useQuery({
+		queryKey: ["profile"],
+		queryFn: async () => {
+			const { data, error } = await api.api.profile.me.get();
+			if (error) {
+				if (error.status === 404) return null;
+				throw new Error(getEdenErrorMessage(error));
+			}
+			return data.data;
+		},
+		enabled: !!sessionQuery.data?.user,
+	});
+
 	const signInMutation = useMutation({
 		mutationFn: async (credentials: { email: string; password: string }) => {
 			const response = await authClient.signIn.email(
@@ -36,6 +49,7 @@ export const useAuth = () => {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["session"] });
+			queryClient.invalidateQueries({ queryKey: ["profile"] });
 		},
 		onError: (error) => {
 			throw new Error(getEdenErrorMessage(error));
@@ -63,6 +77,7 @@ export const useAuth = () => {
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["session"] });
+			queryClient.invalidateQueries({ queryKey: ["profile"] });
 		},
 		onError: (error) => {
 			throw new Error(getEdenErrorMessage(error));
@@ -76,6 +91,9 @@ export const useAuth = () => {
 			});
 			return response.data;
 		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["profile"] });
+		},
 		onError: (error) => {
 			throw new Error(getEdenErrorMessage(error));
 		},
@@ -88,6 +106,7 @@ export const useAuth = () => {
 		},
 		onSuccess: () => {
 			queryClient.removeQueries({ queryKey: ["session"] });
+			queryClient.removeQueries({ queryKey: ["profile"] });
 		},
 		onError: (error) => {
 			throw new Error(getEdenErrorMessage(error));
@@ -109,6 +128,10 @@ export const useAuth = () => {
 		session: sessionQuery.data,
 		sessionLoading: sessionQuery.isLoading,
 		sessionError: sessionQuery.error,
+		profile: profileQuery.data,
+		profileLoading: profileQuery.isLoading,
+		profileError: profileQuery.error,
+		hasProfile: !!profileQuery.data,
 		signIn: signInState.mutateAsync,
 		signInLoading: signInState.isPending,
 		signInError: signInState.error,
@@ -124,3 +147,4 @@ export const useAuth = () => {
 		signInWithOAuth,
 	};
 };
+

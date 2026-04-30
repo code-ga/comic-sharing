@@ -18,6 +18,9 @@ export const comics = pgTable(
 
 		title: text("title").notNull(),
 		description: text("description"),
+		thumbnail: text("thumbnail"),
+		categories: text("categories").array().notNull().default([]),
+		genres: text("genres").array().notNull().default([]),
 
 		chapterIds: text("chapter_ids").notNull().array().default([]),
 
