@@ -22,9 +22,11 @@ export default function AuthForm({
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold">{title}</h2>
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          {title}
+        </h2>
         {description && (
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <p className="text-sm text-muted-foreground mt-2">{description}</p>
         )}
       </div>
 
@@ -34,9 +36,7 @@ export default function AuthForm({
         <div className="flex justify-center mt-4">
           <button
             type="submit"
-            className={`w-full px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50 ${
-              loading ? "opacity-70 cursor-not-allowed" : ""
-            }`}
+            className={`w-full px-4 py-3 bg-gradient-to-r from-primary to-accent text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             disabled={loading}
           >
             {loading ? "Processing..." : submitText}

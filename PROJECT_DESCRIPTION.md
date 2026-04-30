@@ -30,11 +30,12 @@ This proxy hides the actual backend host from the browser, allows changing backe
 
 ### Frontend Stack
 - **Framework**: Next.js 16 (App Router) with server-side API routes for proxying
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS v4 with Dracula theme (dark purple/cyan/pink palette)
 - **State/Data**: React Query (TanStack) for server state management
 - **API Client**: `@elysiajs/eden` for type-safe API calls to `/api/*` (relative paths)
 - **Shared Types**: `@comic-sharing/backend` workspace dependency
 - **Auth**: Better-Auth with React hook integration via `useAuth()`
+- **Design**: Claude-inspired minimalism with glassmorphism effects, smooth rounded corners (`rounded-xl`, `rounded-2xl`), and subtle shadows
 
 ### Configuration
 - **Backend target URL** (`BACKEND_TARGET_URL`): Server-side env var that points to the real backend (e.g., `http://localhost:3001` or `http://backend:3001` in Docker). Not exposed to the browser.
@@ -86,8 +87,9 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - **`frontend/lib/auth.ts`** - Better-Auth client (`createAuthClient`). Base URL: `/api/auth`. Handles built-in auth (user, session, account, verification).
 - **`frontend/hooks/useAuth.ts`** - React Query-based auth hook. Uses `authClient` for sign in/up/out and session queries; uses `api` treaty client for profile creation. Invalidates session queries on mutation success.
 - **`frontend/components/auth/AuthForm.tsx`** - Reusable auth form component with built-in submit handler support
-- **`frontend/components/auth/InputField.tsx`** - Form input field component
+- **`frontend/components/auth/InputField.tsx`** - Form input field component with Dracula theme
 - **`frontend/components/auth/SocialAuthButtons.tsx`** - OAuth provider buttons (Google, GitHub, Discord)
+- **`frontend/components/ChapterList.tsx`** - Reusable chapter list component with edit/delete actions
 - **`frontend/lib/logger.ts`** - Console-based logger
 - **`frontend/constants.ts`** - Frontend configuration; `BACKEND_URL` points to `/api/` (relative). No direct backend host exposed to client.
 
@@ -178,6 +180,13 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
 - **Type-safe API**: Eden treaty client + TypeBox schemas
 - **Backend**: Elysia.js with OpenAPI/Swagger
 - **Database**: Drizzle ORM with PostgreSQL (PGlite for dev)
+- **UI/UX Redesign**: Completed Dracula-themed redesign with glassmorphism effects
+  - Updated `globals.css` with Dracula color palette (purple #bd93f9, pink #ff79c6, cyan #8be9fd)  
+  - Updated protected layout with modern header featuring gradient logo and user avatar
+  - Redesigned dashboard with glassmorphism cards, hover effects, and improved typography
+  - Refactored all protected pages (create/edit comics/chapters, onboarding) with consistent Dracula theme
+  - Extracted ChapterList into reusable component
+  - Enhanced InputField and AuthForm components with modern styling
 
 ### Missing Features
 - **Search/Filters**: Comic discovery and filtering

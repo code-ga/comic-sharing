@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { useState } from "react";
@@ -57,10 +58,10 @@ export default function CreateComicPage() {
 	};
 
 	return (
-		<div className="max-w-2xl mx-auto p-6">
-			<div className="bg-background rounded-xl shadow-lg border border-border overflow-hidden">
-				<div className="p-8 border-b border-border bg-muted/30">
-					<h1 className="text-3xl font-bold tracking-tight">
+		<div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
+			<div className="glass rounded-2xl border border-border/50 overflow-hidden">
+				<div className="p-6 md:p-8 border-b border-border/50 bg-muted/20">
+					<h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
 						Create New Comic
 					</h1>
 					<p className="text-muted-foreground mt-2">
@@ -68,9 +69,9 @@ export default function CreateComicPage() {
 					</p>
 				</div>
 
-				<form onSubmit={handleSubmit} className="p-8 space-y-6">
+				<form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
 					{error && (
-						<div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg text-sm">
+						<div className="p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-sm">
 							{error}
 						</div>
 					)}
@@ -92,7 +93,7 @@ export default function CreateComicPage() {
 							placeholder="Enter comic description..."
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+							className="block w-full rounded-xl border border-input bg-background px-4 py-3 text-sm min-h-[120px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
 							disabled={createMutation.isPending}
 						/>
 					</div>
@@ -118,7 +119,7 @@ export default function CreateComicPage() {
 						<label className="block text-sm font-medium text-muted-foreground">
 							Thumbnail Image
 						</label>
-						<div className="mt-1 flex items-center gap-4 p-4 border border-dashed border-border rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer relative">
+						<div className="mt-1 flex items-center gap-4 p-4 md:p-6 border border-dashed border-border/50 rounded-xl bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer relative group">
 							<input
 								type="file"
 								accept="image/*"
@@ -128,17 +129,19 @@ export default function CreateComicPage() {
 							/>
 							<div className="flex-1">
 								{thumbnail ? (
-									<div className="flex items-center gap-2">
-										<div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center text-primary">
-											🖼️
+									<div className="flex items-center gap-3">
+										<div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-lg shadow-primary/10">
+											<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											</svg>
 										</div>
-										<span className="text-sm font-medium">
+										<span className="text-sm font-medium text-foreground">
 											{thumbnail.name}
 										</span>
 									</div>
 								) : (
-									<div className="text-center py-2">
-										<p className="text-sm text-muted-foreground">
+									<div className="text-center py-4">
+										<p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
 											Click or drag to upload a cover image
 										</p>
 										<p className="text-xs text-muted-foreground/60 mt-1">
@@ -150,21 +153,31 @@ export default function CreateComicPage() {
 						</div>
 					</div>
 
-					<div className="pt-4 flex items-center justify-end gap-4">
+					<div className="pt-6 flex items-center justify-end gap-4">
 						<button
 							type="button"
 							onClick={() => router.back()}
-							className="px-6 py-2 text-sm font-medium hover:bg-muted rounded-lg transition-colors"
+							className="px-6 py-2.5 text-sm font-medium hover:bg-muted/50 rounded-xl transition-all duration-200"
 							disabled={createMutation.isPending}
 						>
 							Cancel
 						</button>
 						<button
 							type="submit"
-							className="px-8 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-lg shadow-md hover:shadow-lg hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							className="px-8 py-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
 							disabled={createMutation.isPending}
 						>
-							{createMutation.isPending ? "Creating..." : "Create Comic"}
+							{createMutation.isPending ? (
+								<span className="flex items-center gap-2">
+									<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									</svg>
+									Creating...
+								</span>
+							) : (
+								"Create Comic"
+							)}
 						</button>
 					</div>
 				</form>
