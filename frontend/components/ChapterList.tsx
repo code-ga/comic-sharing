@@ -1,7 +1,7 @@
-import type { databaseTypes } from "@comic-sharing/backend";
+import type { SchemaType } from "../lib/api";
 
 interface ChapterListProps {
-	chapters: databaseTypes["chapters"][];
+	chapters: SchemaType["chapters"][];
 	comicId: string;
 	onDeleteChapter: (id: number, title: string) => void;
 }

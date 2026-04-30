@@ -13,3 +13,4 @@ In case the project description not found you will create the new one and fill w
 NOTE: Some of the project note maybe mising some infomation so your resposiable is update that for fit with current project
 3. In some task that is quite big you can create the plan.md with the detail plan and track when each task is done
 4. Using some type validation after each task for checking when dont have check and also avoid using type any
+5. For react.js (or some frontend project, subproject like that) please try to re-use ass many component as must as posible (include detect the duplicate code and create component for that)

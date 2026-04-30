@@ -1,11 +1,12 @@
 /** @jsxImportSource react */
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { api, getEdenErrorMessage } from "@/lib/api";
 import InputField from "@/components/auth/InputField";
+import { api, getEdenErrorMessage } from "@/lib/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { BACKEND_URL } from "../../../../../constants";
 
 interface EditComicPageProps {
 	params: Promise<{
@@ -13,7 +14,9 @@ interface EditComicPageProps {
 	}>;
 }
 
-export default function EditComicPage({ params: paramsPromise }: EditComicPageProps) {
+export default function EditComicPage({
+	params: paramsPromise,
+}: EditComicPageProps) {
 	const params = use(paramsPromise);
 	const comicId = params.comicId;
 	const router = useRouter();
@@ -23,7 +26,9 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 	const [categories, setCategories] = useState("");
 	const [genres, setGenres] = useState("");
 	const [thumbnail, setThumbnail] = useState<File | null>(null);
-	const [existingThumbnail, setExistingThumbnail] = useState<string | null>(null);
+	const [existingThumbnail, setExistingThumbnail] = useState<string | null>(
+		null,
+	);
 	const [error, setError] = useState<string | null>(null);
 
 	const { data: comicData, isLoading: isComicLoading } = useQuery({
@@ -48,16 +53,56 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 
 	const updateMutation = useMutation({
 		mutationFn: async () => {
-			const categoryArray = categories.split(",").map(c => c.trim()).filter(c => c !== "");
-			const genreArray = genres.split(",").map(g => g.trim()).filter(g => g !== "");
+			const categoryArray = categories
+				.split(",")
+				.map((c) => c.trim())
+				.filter((c) => c !== "");
+			const genreArray = genres
+				.split(",")
+				.map((g) => g.trim())
+				.filter((g) => g !== "");
 
-			const { data, error } = await api.api.comics({ id: comicId }).put({
-				title,
-				description,
-				thumbnail: thumbnail || undefined,
-				categories: JSON.stringify(categoryArray),
-				genres: JSON.stringify(genreArray),
+			// const { data, error } = await api.api.comics({ id: comicId }).put(
+			// 	cleanObject({
+			// 		title,
+			// 		description,
+			// 		thumbnail: thumbnail || undefined,
+			// 		categories: JSON.stringify(categoryArray),
+			// 		genres: JSON.stringify(genreArray),
+			// 	}),
+			// );
+
+			// const body = cleanObject({
+			// 	title,
+			// 	description,
+			// 	thumbnail: thumbnail || undefined,
+			// 	categories: JSON.stringify(categoryArray),
+			// 	genres: JSON.stringify(genreArray),
+			// });
+
+			// using native fetch for file uploading because treaty have error
+			const formData = new FormData();
+			if (title.trim()) formData.append("title", title.trim());
+			if (description.trim())
+				formData.append("description", description.trim());
+			if (categoryArray.length)
+				categoryArray.map((data) =>
+					formData.append("categories", String(data)),
+				);
+			if (genreArray.length)
+				genreArray.map((data) => formData.append("genres", data));
+			if (thumbnail) formData.append("thumbnail", thumbnail);
+			// using native fetch
+			const res = await fetch(`${BACKEND_URL}/api/comics/${comicId}`, {
+				method: "PUT",
+				body: formData,
+				credentials: "include",
+				headers: {
+					accept: "application/json",
+				},
 			});
+			const data = await res.json();
+			const error = res.ok ? null : data;
 
 			if (error) throw new Error(getEdenErrorMessage(error));
 			return data;
@@ -97,7 +142,11 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 						Edit Comic
 					</h1>
 					<p className="text-muted-foreground mt-2">
-						Update the details for <span className="text-foreground font-medium">{title || "your comic"}</span>.
+						Update the details for{" "}
+						<span className="text-foreground font-medium">
+							{title || "your comic"}
+						</span>
+						.
 					</p>
 				</div>
 
@@ -151,13 +200,15 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 						<label className="block text-sm font-medium text-muted-foreground">
 							Thumbnail Image
 						</label>
-						
+
 						{existingThumbnail && !thumbnail && (
 							<div className="mb-4 p-2 border border-border/50 rounded-xl bg-muted/30 inline-block">
-								<p className="text-xs text-muted-foreground mb-2">Current thumbnail:</p>
-								<img 
-									src={existingThumbnail} 
-									alt="Current thumbnail" 
+								<p className="text-xs text-muted-foreground mb-2">
+									Current thumbnail:
+								</p>
+								<img
+									src={existingThumbnail}
+									alt="Current thumbnail"
 									className="w-32 h-40 object-cover rounded-xl shadow-lg shadow-primary/10"
 								/>
 							</div>
@@ -175,16 +226,32 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 								{thumbnail ? (
 									<div className="flex items-center gap-3">
 										<div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-											<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											<svg
+												className="w-6 h-6"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+												/>
 											</svg>
 										</div>
-										<span className="text-sm font-medium text-foreground">{thumbnail.name}</span>
+										<span className="text-sm font-medium text-foreground">
+											{thumbnail.name}
+										</span>
 									</div>
 								) : (
 									<div className="text-center py-4">
-										<p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Click or drag to replace cover image</p>
-										<p className="text-xs text-muted-foreground/60 mt-1">Leave empty to keep existing</p>
+										<p className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+											Click or drag to replace cover image
+										</p>
+										<p className="text-xs text-muted-foreground/60 mt-1">
+											Leave empty to keep existing
+										</p>
 									</div>
 								)}
 							</div>
@@ -207,9 +274,24 @@ export default function EditComicPage({ params: paramsPromise }: EditComicPagePr
 						>
 							{updateMutation.isPending ? (
 								<span className="flex items-center gap-2">
-									<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									<svg
+										className="w-4 h-4 animate-spin"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										></circle>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
 									</svg>
 									Updating...
 								</span>

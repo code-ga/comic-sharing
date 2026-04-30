@@ -70,8 +70,6 @@ export const chapterPages = pgTable("chapter_pages", {
 		.notNull()
 		.references(() => chapters.id, { onDelete: "cascade" }),
 
-	authorId: text("author_id").notNull(),
-
 	/**
 	 * Hashing is used to ensure the integrity of the page data. It can be a hash of the page content or a unique identifier for the page. This helps in verifying that the page data has not been tampered with and can be used for caching purposes.
 	 */

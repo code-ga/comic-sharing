@@ -45,21 +45,11 @@ This proxy hides the actual backend host from the browser, allows changing backe
 
 ### Backend (`backend/`)
 
-#### Database Layer
-- `backend/src/database/schema/auth.ts` - User table schema (username, email, password, salt)
-- `backend/src/database/schema/relations.ts` - Drizzle relations definitions
-- `backend/src/database/schema/index.ts` - Schema exports
-- `backend/src/database/schema.ts` - Main schema export barrel
-- `backend/src/database/schema/comic.ts` - Comic and Chapter schema definitions (includes `categories` and `genres` text arrays)
-- `backend/src/database/speard.ts` - Utility to spread Drizzle schemas into TypeBox schemas for type-safe API contracts
-- `backend/src/database/types.ts` - Type extraction utilities from database schemas
-- `backend/src/database/index.ts` - Database connection setup (PostgreSQL/PGlite) and migrations
-
 #### Server Layer
 - `backend/src/index.ts` - Elysia app setup with CORS, OpenAPI, and error handlers
 - `backend/src/utils/logger.ts` - Pino-based logger with file/line caller tracking
 - `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, cursorPaginatedResponse, errorResponse)
-- `backend/src/routes/comic.ts` - Comic CRUD routes with cursor-based pagination and file upload support.
+- `backend/src/routes/comic.ts` - Comic CRUD routes with cursor-based pagination and file upload support. Updated to use multipart/form-data for both POST and PUT endpoints, with proper handling of categories and genres as arrays.
 - `backend/src/routes/chapters.ts` - Chapter CRUD routes for comics.
 
 #### Configuration
@@ -80,7 +70,11 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - `frontend/app/login/page.tsx` - Login page with email/password form
 - `frontend/app/register/page.tsx` - Registration page with email/password/username form
 - `frontend/app/api/[...path]/route.ts` - Catch-all API proxy that forwards requests to `BACKEND_TARGET_URL` and returns backend responses (status, body, headers), including cookie passthrough.
-- `frontend/app/page.tsx` - Landing page
+- `frontend/app/page.tsx` - Landing page displaying comics in three sections (Recommended, Latest Updates, New Additions) using React Query and ComicCard components. Implements loading, error, and empty states. Fetch data from public endpoints (`/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`).
+
+##### Components
+- **`frontend/components/ChapterList.tsx`** - Reusable chapter list component with edit/delete actions
+- **`frontend/components/ComicCard.tsx`** - Reusable comic card component for displaying comic metadata (thumbnail, title, description, categories) in a responsive grid. Links to the comic detail page (`/comics/[id]`). Follows the Dracula theme with `glass` styling, hover effects, and rounded corners.
 
 ##### Shared Utilities
 - **`frontend/lib/api.ts`** - Eden treaty client configured with `BACKEND_URL = '/api/'` for type-safe backend API calls via the proxy. Used for custom app resources (profile, comics, chapters, roles).
@@ -89,7 +83,6 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - **`frontend/components/auth/AuthForm.tsx`** - Reusable auth form component with built-in submit handler support
 - **`frontend/components/auth/InputField.tsx`** - Form input field component with Dracula theme
 - **`frontend/components/auth/SocialAuthButtons.tsx`** - OAuth provider buttons (Google, GitHub, Discord)
-- **`frontend/components/ChapterList.tsx`** - Reusable chapter list component with edit/delete actions
 - **`frontend/lib/logger.ts`** - Console-based logger
 - **`frontend/constants.ts`** - Frontend configuration; `BACKEND_URL` points to `/api/` (relative). No direct backend host exposed to client.
 
@@ -177,6 +170,7 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
   - Creation and editing of comics with thumbnail upload and metadata (categories, genres).
   - Creation and editing of chapters within comics.
   - Management dashboard with delete confirmation popups.
+- **Landing page**: Public frontend displaying latest, recent, and recommended comics using React Query and the ComicCard component. Fetches data from three public backend endpoints (`/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`).
 - **Type-safe API**: Eden treaty client + TypeBox schemas
 - **Backend**: Elysia.js with OpenAPI/Swagger
 - **Database**: Drizzle ORM with PostgreSQL (PGlite for dev)
@@ -185,7 +179,7 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
   - Updated protected layout with modern header featuring gradient logo and user avatar
   - Redesigned dashboard with glassmorphism cards, hover effects, and improved typography
   - Refactored all protected pages (create/edit comics/chapters, onboarding) with consistent Dracula theme
-  - Extracted ChapterList into reusable component
+  - Extracted ChapterList and ComicCard into reusable components
   - Enhanced InputField and AuthForm components with modern styling
 
 ### Missing Features
@@ -193,6 +187,12 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
 - **Email verification**: Flow not yet wired up
 - **Password reset**: Not implemented
 - **Advanced RBAC UI**: Role editor, permission assignment interface
+
+### Landing Page Future Enhancements
+- Pagination / lazy loading for large comic collections
+- Recommendation algorithm (currently uses latest updated comics)
+- Filtering and sorting options (by category, genre, date, etc.)
+- Infinite scroll for comic grids
 
 ## Comic Management API
 
@@ -214,7 +214,7 @@ Comics support full CRUD operations with thumbnail image upload via HackClub CDN
 
 ### Thumbnail Upload Flow
 1. Client sends `multipart/form-data` with fields:
-   - `title`, `description`, `categories` (JSON string), `genres` (JSON string), `thumbnail` (File)
+    - `title`, `description`, `categories` (array), `genres` (array), `thumbnail` (File)
 2. Backend receives FormData, extracts file and fields.
 3. Calls `uploadImages([file])` from `backend/src/utils/files.ts`
 4. Stores returned URL in `thumbnail` column.
@@ -253,7 +253,11 @@ All cluster comic endpoints use efficient cursor-based pagination instead of `OF
 | `GET /cluster/recently-added` | `created_at DESC, id DESC` | Recently added comics |
 | `GET /cluster/recommended` | `updated_at DESC, id DESC` | Placeholder |
 | `GET /comics/latest-update` | `updated_at DESC` | Fetches all comics for dashboard |
+| `GET /comics/recently-added` | `created_at DESC` | Recently added comics (no chapters included) |
+| `GET /comics/recommended` | `updated_at DESC` | Recommended comics (currently same as latest-update) |
 | `GET /comics/:id` | — | Fetches a single comic by ID |
+
+**Public endpoints** (no authentication required): `/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`. Used by the landing page.
 
 ## Authentication System
 

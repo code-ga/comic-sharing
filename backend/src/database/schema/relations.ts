@@ -1,15 +1,18 @@
 import * as auth from "./auth";
 import * as app from "./app";
 import * as comic from "./comic";
+import * as queue from "./queue";
 import { defineRelations } from "drizzle-orm";
 
 export const table = {
 	...auth,
 	...app,
-	comics: comic.comics,
-	chapters: comic.chapters,
-	chapterPages: comic.chapterPages,
-	chapterPageSubtitles: comic.chapterPageSubtitles,
+	...queue,
+	// comics: comic.comics,
+	// chapters: comic.chapters,
+	// chapterPages: comic.chapterPages,
+	// chapterPageSubtitles: comic.chapterPageSubtitles,
+	...comic,
 } as const;
 
 export const schemaRelations = defineRelations(table, (r) => ({
@@ -77,4 +80,4 @@ export const schemaRelations = defineRelations(table, (r) => ({
 }));
 export type Table = typeof table;
 
-export default table
+export default table;

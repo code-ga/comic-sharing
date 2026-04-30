@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { api, getEdenErrorMessage } from "@/lib/api";
 import InputField from "@/components/auth/InputField";
+import { BACKEND_URL } from "../../../../constants";
 
 export default function CreateComicPage() {
 	const router = useRouter();
@@ -27,13 +28,28 @@ export default function CreateComicPage() {
 				.map((g) => g.trim())
 				.filter((g) => g !== "");
 
-			const { data, error } = await api.api.comics.post({
-				title,
-				description,
-				thumbnail: thumbnail || undefined,
-				categories: JSON.stringify(categoryArray),
-				genres: JSON.stringify(genreArray),
+			const formData = new FormData();
+			if (title.trim()) formData.append("title", title.trim());
+			if (description.trim())
+				formData.append("description", description.trim());
+			if (categoryArray.length)
+				categoryArray.map((data) =>
+					formData.append("categories", String(data)),
+				);
+			if (genreArray.length)
+				genreArray.map((data) => formData.append("genres", data));
+			if (thumbnail) formData.append("thumbnail", thumbnail);
+			// using native fetch
+			const res = await fetch(`${BACKEND_URL}/api/comics`, {
+				method: "POST",
+				body: formData,
+				credentials: "include",
+				headers: {
+					accept: "application/json",
+				},
 			});
+			const data = await res.json();
+			const error = res.ok ? null : data;
 
 			if (error) throw new Error(getEdenErrorMessage(error));
 			return data;
@@ -131,8 +147,18 @@ export default function CreateComicPage() {
 								{thumbnail ? (
 									<div className="flex items-center gap-3">
 										<div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary shadow-lg shadow-primary/10">
-											<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											<svg
+												className="w-6 h-6"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+												/>
 											</svg>
 										</div>
 										<span className="text-sm font-medium text-foreground">
@@ -169,9 +195,24 @@ export default function CreateComicPage() {
 						>
 							{createMutation.isPending ? (
 								<span className="flex items-center gap-2">
-									<svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									<svg
+										className="w-4 h-4 animate-spin"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											className="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											strokeWidth="4"
+										></circle>
+										<path
+											className="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
 									</svg>
 									Creating...
 								</span>

@@ -1,4 +1,4 @@
-import { treaty } from "@elysiajs/eden";
+import { treaty, edenFetch } from "@elysiajs/eden";
 import type { App, databaseTypes } from "@comic-sharing/backend";
 import type { Static, TSchema } from "@sinclair/typebox";
 import { BACKEND_URL } from "../constants";
@@ -8,6 +8,15 @@ export const api = treaty<App>(BACKEND_URL, {
 		credentials: "include",
 		redirect: "follow",
 	},
+});
+
+export const apiFetch = edenFetch<App>(BACKEND_URL, {
+	// fetch: {
+	// 	credentials: "include",
+	// 	redirect: "follow",
+	// },
+	credentials: "include",
+	redirect: "follow",
 });
 
 /**

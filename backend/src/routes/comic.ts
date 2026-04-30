@@ -195,9 +195,24 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							title,
 							description,
 							thumbnail: thumbnailFile,
-							categories: categoriesStr,
-							genres: genresStr,
+							categories,
+							genres,
 						} = ctx.body;
+
+						if (!title.trim()) {
+							return ctx.status(400, {
+								success: false,
+								message: "Title is required",
+								timestamp: Date.now(),
+							});
+						}
+						if (!description?.trim()) {
+							return ctx.status(400, {
+								success: false,
+								message: "Description is required",
+								timestamp: Date.now(),
+							});
+						}
 
 						const userId = ctx.profile?.id;
 						if (!userId) {
@@ -208,14 +223,17 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							});
 						}
 
-						let categories: string[] = [];
-						let genres: string[] = [];
-						try {
-							if (categoriesStr) categories = JSON.parse(categoriesStr);
-							if (genresStr) genres = JSON.parse(genresStr);
-						} catch (e) {
-							// fallback to empty arrays if parsing fails
-						}
+						// Categories and genres come as arrays from multipart/form-data
+						const categoriesArray = Array.isArray(categories)
+							? categories
+							: categories
+								? [categories]
+								: [];
+						const genresArray = Array.isArray(genres)
+							? genres
+							: genres
+								? [genres]
+								: [];
 
 						let thumbnailUrl: string | undefined;
 						if (thumbnailFile) {
@@ -229,8 +247,8 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 								title,
 								description,
 								thumbnail: thumbnailUrl,
-								categories,
-								genres,
+								categories: categoriesArray,
+								genres: genresArray,
 								authorId: userId,
 							})
 							.returning();
@@ -246,13 +264,15 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						detail: {
 							description: "Create a new comic",
 						},
-						body: Type.Object({
-							title: Type.String(),
-							description: Type.String(),
-							thumbnail: Type.Optional(t.File({ type: "image/*" })),
-							categories: Type.Optional(Type.String()),
-							genres: Type.Optional(Type.String()),
-						}),
+						body: 
+							t.Object({
+								title: t.String({ minLength: 1 }),
+								description: t.String({ minLength: 1 }),
+								thumbnail: t.Optional(t.File()),
+								categories: t.Optional(t.Array(t.String())),
+								genres: t.Optional(t.Array(t.String())),
+							}),
+						
 						isMultipart: true,
 						response: {
 							201: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),
@@ -270,9 +290,11 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							title,
 							description,
 							thumbnail: thumbnailFile,
-							categories: categoriesStr,
-							genres: genresStr,
+							categories,
+							genres,
 						} = ctx.body;
+
+						console.log(ctx.body);
 
 						const userId = ctx.profile?.id;
 						if (!userId) {
@@ -302,14 +324,17 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							});
 						}
 
-						let categories = comic.categories;
-						let genres = comic.genres;
-						try {
-							if (categoriesStr) categories = JSON.parse(categoriesStr);
-							if (genresStr) genres = JSON.parse(genresStr);
-						} catch (e) {
-							// fallback to existing values if parsing fails
-						}
+						// Categories and genres come as arrays from multipart/form-data
+						const categoriesArray = Array.isArray(categories)
+							? categories
+							: categories
+								? [categories]
+								: comic.categories;
+						const genresArray = Array.isArray(genres)
+							? genres
+							: genres
+								? [genres]
+								: comic.genres;
 
 						let thumbnailUrl = comic.thumbnail;
 						if (thumbnailFile) {
@@ -320,15 +345,20 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							const uploadedUrls = await uploadImages([thumbnailFile]);
 							thumbnailUrl = uploadedUrls[0];
 						}
+						console.log(
+							thumbnailUrl,
+							typeof categoriesArray,
+							typeof genresArray,
+						);
 
 						const [updatedComic] = await db
 							.update(schema.comics)
 							.set({
-								title: title ?? comic.title,
-								description: description ?? comic.description,
+								title: title?.trim() ?? comic.title,
+								description: description?.trim() ?? comic.description,
 								thumbnail: thumbnailUrl,
-								categories,
-								genres,
+								categories: categoriesArray,
+								genres: genresArray,
 							})
 							.where(eq(schema.comics.id, Number(id)))
 							.returning();
@@ -346,13 +376,13 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						params: Type.Object({
 							id: Type.String(),
 						}),
-						body: Type.Partial(
-							Type.Object({
-								title: Type.String(),
-								description: Type.String(),
-								thumbnail: Type.Optional(t.File({ type: "image/*" })),
-								categories: Type.Optional(Type.String()),
-								genres: Type.Optional(Type.String()),
+						body: t.Partial(
+							t.Object({
+								title: t.String({ minLength: 1 }),
+								description: t.String({ minLength: 1 }),
+								thumbnail: t.Optional(t.File()),
+								categories: t.Optional(t.Array(t.String())),
+								genres: t.Optional(t.Array(t.String())),
 							}),
 						),
 						isMultipart: true,

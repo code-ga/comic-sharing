@@ -6,7 +6,7 @@ import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
 import { table as schema } from "../database/schema";
-import { removeImage, uploadImages } from "../utils/files";
+import { removeImage, uploadImages,calculateFileHash } from "../utils/files";
 
 export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 	.use(authenticationMiddleware)
@@ -117,20 +117,6 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							timestamp: Date.now(),
 						});
 					}
-
-					// const insertData: InferInsertModel<typeof schema.chapterPages> = {
-					// 	chapterId,
-					// 	imageUrl,
-					// 	content,
-					// 	authorId: profile.id,
-					// 	hashing: "",
-					// };
-					// // Create chapter page
-					// const newChapterPage = await db
-					// 	.insert(schema.chapterPages)
-					// 	.values(insertData)
-					// 	.returning();
-					// const chapterPageId = newChapterPage[0].id;
 
 					const newChapterPage = await db.transaction(async (tx) => {
 						// Fetch existing pages ordered by page number
