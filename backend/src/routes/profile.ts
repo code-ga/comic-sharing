@@ -183,53 +183,6 @@ export const profileRouter = new Elysia({
 						},
 					},
 				)
-				.put(
-					"/",
-					async (ctx) => {
-						if (!ctx.user) {
-							return ctx.status(401, {
-								status: 401,
-								message: "Unauthorized",
-								timestamp: Date.now(),
-								success: false,
-							});
-						}
-						const profile = await db
-							.update(schema.profile)
-							.set({
-								userId: ctx.user.id,
-								username: ctx.body.username,
-								updatedAt: new Date(),
-							})
-							.where(eq(schema.profile.userId, ctx.user.id))
-							.returning();
-						if (!profile || !profile[0]) {
-							return ctx.status(400, {
-								status: 400,
-								message: "Profile not updated",
-								timestamp: Date.now(),
-								success: false,
-							});
-						}
-						return ctx.status(200, {
-							status: 200,
-							data: profile[0],
-							message: "Profile updated successfully",
-							timestamp: Date.now(),
-							success: true,
-						});
-					},
-					{
-						body: Type.Object({
-							username: Type.String({ minLength: 3, pattern: "^.*\\S.*$" }),
-						}),
-						response: {
-							200: baseResponseSchema(Type.Object(dbSchemaTypes.profile)),
-							400: errorResponseSchema,
-							401: errorResponseSchema,
-						},
-					},
-				)
 				.get(
 					"/",
 					async (ctx) => {
@@ -305,6 +258,53 @@ export const profileRouter = new Elysia({
 	)
 	.guard({ userAuth: true }, (app) =>
 		app
+			.put(
+				"/",
+				async (ctx) => {
+					if (!ctx.user) {
+						return ctx.status(401, {
+							status: 401,
+							message: "Unauthorized",
+							timestamp: Date.now(),
+							success: false,
+						});
+					}
+					const profile = await db
+						.update(schema.profile)
+						.set({
+							userId: ctx.user.id,
+							username: ctx.body.username,
+							updatedAt: new Date(),
+						})
+						.where(eq(schema.profile.userId, ctx.user.id))
+						.returning();
+					if (!profile || !profile[0]) {
+						return ctx.status(400, {
+							status: 400,
+							message: "Profile not updated",
+							timestamp: Date.now(),
+							success: false,
+						});
+					}
+					return ctx.status(200, {
+						status: 200,
+						data: profile[0],
+						message: "Profile updated successfully",
+						timestamp: Date.now(),
+						success: true,
+					});
+				},
+				{
+					body: Type.Object({
+						username: Type.String({ minLength: 3, pattern: "^.*\\S.*$" }),
+					}),
+					response: {
+						200: baseResponseSchema(Type.Object(dbSchemaTypes.profile)),
+						400: errorResponseSchema,
+						401: errorResponseSchema,
+					},
+				},
+			)
 			.get(
 				"/list-user",
 				async (ctx) => {

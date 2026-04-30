@@ -67,14 +67,14 @@ export const authenticationMiddleware = new Elysia({
 	optionalAuth: {
 		async resolve({ request: { headers } }) {
 			const session = await auth.api.getSession({ headers });
-			if (!session) return {}; // No auth, but that's okay
-			const profile = await db.query.profile.findFirst({
-				where: { userId: session.user.id },
-			});
 			return {
-				user: session.user,
-				session: session.session,
-				profile: profile || null,
+				user: session?.user,
+				session: session?.session,
+				profile: session?.user
+					? await db.query.profile.findFirst({
+							where: { userId: session.user.id },
+						})
+					: null,
 			};
 		},
 	},
