@@ -94,7 +94,7 @@ export const chaptersRoute = new Elysia({ prefix: "/chapters" })
 				},
 			),
 	)
-	.guard({ userAuth: { requiredProfile: true } }, (app) =>
+	.guard({ userAuth: true }, (app) =>
 		app
 			.post(
 				"/comic/:comicId",

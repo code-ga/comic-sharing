@@ -6,9 +6,11 @@ import { table as schema } from "../database/schema";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
+import { appStateService } from "../services/AppState";
 
 export const comicsRoute = new Elysia({ prefix: "/comics" })
 	.use(authenticationMiddleware)
+	.use(appStateService)
 	.guard({ optionalAuth: true }, (app) =>
 		app
 			.get(
@@ -102,7 +104,7 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 	)
 	.guard(
 		{
-			userAuth: { requiredProfile: true },
+			userAuth: true,
 		},
 		(app) =>
 			app

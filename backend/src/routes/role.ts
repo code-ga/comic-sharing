@@ -21,9 +21,7 @@ export const roleRoute = new Elysia({ prefix: "/role" })
 	.use(authenticationMiddleware)
 	.guard(
 		{
-			userAuth: {
-				requiredProfile: true,
-			},
+			userAuth: true,
 		},
 		(app) =>
 			app

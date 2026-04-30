@@ -11,7 +11,7 @@ import { logger } from "../utils/logger";
 export const authenticationMiddleware = new Elysia({
 	name: "authentication",
 }).macro({
-	userAuth: (config: { requiredProfile: boolean }) => ({
+	userAuth: {
 		async resolve({ status, request: { headers, url } }) {
 			logger.info("Authentication middleware");
 			logger.info("Path: ", url);
@@ -26,7 +26,7 @@ export const authenticationMiddleware = new Elysia({
 					userId: session.user.id,
 				},
 			});
-			if (config.requiredProfile && !profile)
+			if (!profile)
 				return status(401, { success: false, message: "Unauthorized" });
 			return {
 				user: session.user,
@@ -34,7 +34,7 @@ export const authenticationMiddleware = new Elysia({
 				profile: profile,
 			};
 		},
-	}),
+	},
 	roleAuth: (filter: PermissionFilter) => ({
 		async resolve({ status, request: { headers } }) {
 			const session = await auth.api.getSession({ headers });

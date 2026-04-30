@@ -18,15 +18,21 @@ export const profileRouter = new Elysia({
 	.use(appStateService)
 	.guard(
 		{
-			userAuth: {
-				requiredProfile: false,
-			},
+			optionalAuth: true,
 		},
 		(app) =>
 			app
 				.get(
 					"/me",
 					async (ctx) => {
+						if (!ctx.user) {
+							return ctx.status(401, {
+								status: 401,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+								success: false,
+							});
+						}
 						const profiles = await db.query.profile.findFirst({
 							where: {
 								userId: ctx.user.id,
@@ -58,12 +64,21 @@ export const profileRouter = new Elysia({
 								Type.Object({ ...dbSchemaTypes.profile }),
 							),
 							404: errorResponseSchema,
+							401: errorResponseSchema,
 						},
 					},
 				)
 				.get(
 					"/my-permissions",
 					async (ctx) => {
+						if (!ctx.user) {
+							return ctx.status(401, {
+								status: 401,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+								success: false,
+							});
+						}
 						const profiles = await db
 							.select()
 							.from(schema.profile)
@@ -96,12 +111,21 @@ export const profileRouter = new Elysia({
 						response: {
 							200: baseResponseSchema(Type.Array(Type.String())),
 							404: errorResponseSchema,
+							401: errorResponseSchema,
 						},
 					},
 				)
 				.post(
 					"/",
 					async (ctx) => {
+						if (!ctx.user) {
+							return ctx.status(401, {
+								status: 401,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+								success: false,
+							});
+						}
 						const alreadyExists = await db
 							.select()
 							.from(schema.profile)
@@ -154,6 +178,7 @@ export const profileRouter = new Elysia({
 						response: {
 							201: baseResponseSchema(Type.Object(dbSchemaTypes.profile)),
 							400: errorResponseSchema,
+							401: errorResponseSchema,
 							500: errorResponseSchema,
 						},
 					},
@@ -161,6 +186,14 @@ export const profileRouter = new Elysia({
 				.put(
 					"/",
 					async (ctx) => {
+						if (!ctx.user) {
+							return ctx.status(401, {
+								status: 401,
+								message: "Unauthorized",
+								timestamp: Date.now(),
+								success: false,
+							});
+						}
 						const profile = await db
 							.update(schema.profile)
 							.set({
@@ -193,6 +226,7 @@ export const profileRouter = new Elysia({
 						response: {
 							200: baseResponseSchema(Type.Object(dbSchemaTypes.profile)),
 							400: errorResponseSchema,
+							401: errorResponseSchema,
 						},
 					},
 				)
@@ -269,7 +303,7 @@ export const profileRouter = new Elysia({
 					},
 				),
 	)
-	.guard({ userAuth: { requiredProfile: true } }, (app) =>
+	.guard({ userAuth: true }, (app) =>
 		app
 			.get(
 				"/list-user",

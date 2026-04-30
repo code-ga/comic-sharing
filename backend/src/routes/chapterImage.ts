@@ -83,7 +83,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 				},
 			),
 	)
-	.guard({ userAuth: { requiredProfile: true } }, (app) =>
+	.guard({ userAuth: true }, (app) =>
 		app
 			.post(
 				"/add",
