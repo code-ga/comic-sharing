@@ -1,12 +1,12 @@
 import { Type } from "@sinclair/typebox";
-import { eq, gte, and, gt, sql, InferInsertModel } from "drizzle-orm";
+import { eq, gte, and, gt, sql, InferInsertModel, inArray } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { db } from "../database";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
-import { table as schema } from "../database/schema";
-import { removeImage, uploadImages,calculateFileHash } from "../utils/files";
+import table, { table as schema } from "../database/schema";
+import { removeImage, uploadImages, calculateFileHash } from "../utils/files";
 
 export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 	.use(authenticationMiddleware)
@@ -371,6 +371,202 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 					},
 					body: Type.Object({
 						pageIds: Type.Array(Type.Number()),
+					}),
+					response: {
+						200: baseResponseSchema(
+							Type.Array(Type.Object(dbSchemaTypes.chapterPages)),
+						),
+						400: errorResponseSchema,
+						401: errorResponseSchema,
+						403: errorResponseSchema,
+						404: errorResponseSchema,
+						500: errorResponseSchema,
+					},
+				},
+			)
+			.patch(
+				"/batch/reorder",
+				async (ctx) => {
+					const profile = ctx.profile;
+					const { swaps } = ctx.body as {
+						swaps: { pageId: number; newPosition: number }[];
+					};
+
+					if (!swaps || swaps.length === 0) {
+						return ctx.status(400, {
+							success: false,
+							message: "No reorder data provided",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Validate input
+					const invalidSwaps = swaps.filter(
+						(swap) => !swap.pageId || swap.pageId <= 0 || swap.newPosition < 0,
+					);
+
+					if (invalidSwaps.length > 0) {
+						return ctx.status(400, {
+							success: false,
+							message: "Invalid reorder data provided",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Check duplicate pageIds
+					const pageIds = swaps.map((swap) => swap.pageId);
+					const uniquePageIds = new Set(pageIds);
+
+					if (uniquePageIds.size !== pageIds.length) {
+						return ctx.status(400, {
+							success: false,
+							message: "Duplicate pageId detected",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Check duplicate target positions
+					const positions = swaps.map((swap) => swap.newPosition);
+					const uniquePositions = new Set(positions);
+
+					if (uniquePositions.size !== positions.length) {
+						return ctx.status(400, {
+							success: false,
+							message: "Duplicate target position detected",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Fetch pages to reorder
+					const pagesToMove = await db
+						.select()
+						.from(schema.chapterPages)
+						.where(inArray(schema.chapterPages.id, pageIds));
+
+					if (pagesToMove.length !== swaps.length) {
+						return ctx.status(404, {
+							success: false,
+							message: "Some pages not found",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Ensure all belong to same chapter
+					const chapterId = pagesToMove[0].chapterId;
+
+					const invalidPages = pagesToMove.filter(
+						(page) =>
+							page.chapterId !== chapterId || page.authorId !== profile.id,
+					);
+
+					if (invalidPages.length > 0) {
+						return ctx.status(403, {
+							success: false,
+							message:
+								"Forbidden: Some pages do not belong to you or are from different chapters",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Fetch all chapter pages
+					const allChapterPages = await db.query.chapterPages.findMany({
+						where: {
+							chapterId,
+						},
+						orderBy: {
+							pageNumber: "asc",
+						},
+					});
+
+					// Bounds check
+					const totalPages = allChapterPages.length;
+
+					const outOfBounds = swaps.some(
+						(swap) => swap.newPosition >= totalPages,
+					);
+
+					if (outOfBounds) {
+						return ctx.status(400, {
+							success: false,
+							message: "Target position out of bounds",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Transaction
+					const reorderedPages = await db.transaction(async (tx) => {
+						const movingPageMap = new Map(
+							pagesToMove.map((page) => [page.id, page]),
+						);
+
+						const movingPageIds = new Set(pageIds);
+
+						// Remove moving pages from current order
+						const remainingPages = allChapterPages.filter(
+							(page) => !movingPageIds.has(page.id),
+						);
+
+						// Sort insert operations by target position
+						const sortedSwaps = [...swaps].sort(
+							(a, b) => a.newPosition - b.newPosition,
+						);
+
+						// Insert moving pages into their new positions
+						for (const swap of sortedSwaps) {
+							const page = movingPageMap.get(swap.pageId);
+
+							if (!page) continue;
+
+							remainingPages.splice(swap.newPosition, 0, page);
+						}
+
+						// Reindex sequentially
+						for (let i = 0; i < remainingPages.length; i++) {
+							const page = remainingPages[i];
+
+							if (page.pageNumber !== i) {
+								await tx
+									.update(schema.chapterPages)
+									.set({
+										pageNumber: i,
+									})
+									.where(eq(schema.chapterPages.id, page.id));
+							}
+						}
+
+						// Return updated moved pages
+						const finalPages = await tx.query.chapterPages.findMany({
+							where: {
+								id: {
+									in: pageIds,
+								},
+							},
+							orderBy: {
+								pageNumber: "asc",
+							},
+						});
+
+						return finalPages;
+					});
+
+					return ctx.status(200, {
+						success: true,
+						message: `${reorderedPages.length} chapter pages reordered successfully`,
+						data: reorderedPages,
+						timestamp: Date.now(),
+					});
+				},
+				{
+					detail: {
+						description: "Reorder multiple chapter pages positions at once",
+					},
+					body: Type.Object({
+						swaps: Type.Array(
+							Type.Object({
+								pageId: Type.Number(),
+								newPosition: Type.Number(),
+							}),
+						),
 					}),
 					response: {
 						200: baseResponseSchema(

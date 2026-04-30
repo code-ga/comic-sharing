@@ -136,7 +136,12 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						id: Type.String(),
 					}),
 					response: {
-						200: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),
+						200: baseResponseSchema(
+							Type.Object({
+								...dbSchemaTypes.comics,
+								chapters: Type.Array(Type.Object(dbSchemaTypes.chapters)),
+							}),
+						),
 						404: errorResponseSchema,
 						500: errorResponseSchema,
 					},
@@ -181,7 +186,12 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						},
 						response: {
 							200: baseResponseSchema(
-								Type.Array(Type.Object({ ...dbSchemaTypes.comics })),
+								Type.Array(
+									Type.Object({
+										...dbSchemaTypes.comics,
+										chapters: Type.Array(Type.Object(dbSchemaTypes.chapters)),
+									}),
+								),
 							),
 							500: errorResponseSchema,
 							401: errorResponseSchema,
@@ -264,15 +274,14 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						detail: {
 							description: "Create a new comic",
 						},
-						body: 
-							t.Object({
-								title: t.String({ minLength: 1 }),
-								description: t.String({ minLength: 1 }),
-								thumbnail: t.Optional(t.File()),
-								categories: t.Optional(t.Array(t.String())),
-								genres: t.Optional(t.Array(t.String())),
-							}),
-						
+						body: t.Object({
+							title: t.String({ minLength: 1 }),
+							description: t.String({ minLength: 1 }),
+							thumbnail: t.Optional(t.File()),
+							categories: t.Optional(t.Array(t.String())),
+							genres: t.Optional(t.Array(t.String())),
+						}),
+
 						isMultipart: true,
 						response: {
 							201: baseResponseSchema(Type.Object({ ...dbSchemaTypes.comics })),

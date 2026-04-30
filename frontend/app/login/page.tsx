@@ -26,7 +26,7 @@ export default function LoginPage() {
 			setSuccess("Login successful! Redirecting...");
 			// Give a moment for the success message to show, then redirect
 			setTimeout(() => {
-				router.push("/");
+				router.push("/dashboard");
 			}, 1500);
 		} catch (err: any) {
 			setError(err.message || "An error occurred during login");

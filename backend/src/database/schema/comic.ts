@@ -70,6 +70,8 @@ export const chapterPages = pgTable("chapter_pages", {
 		.notNull()
 		.references(() => chapters.id, { onDelete: "cascade" }),
 
+	authorId: text("author_id").notNull(),
+
 	/**
 	 * Hashing is used to ensure the integrity of the page data. It can be a hash of the page content or a unique identifier for the page. This helps in verifying that the page data has not been tampered with and can be used for caching purposes.
 	 */
@@ -80,7 +82,7 @@ export const chapterPages = pgTable("chapter_pages", {
 	 * If this is novel we just saving content.
 	 * If manga or non-text media we going to using ocr or like that
 	 */
-	content: text("content").notNull(),
+	content: text("content"),
 
 	subtitleIds: text("subtitle_ids").notNull().array().default([]),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -109,6 +111,9 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 		text: string;
 		translatedText: { [key: string]: string }; // language code as key and translated text as value
 	}>(),
+	inpaintedImage: text(),
+	content: text(),
+	
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -67,6 +67,8 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - `frontend/app/(protected)/comics/[comicId]/edit/page.tsx` - Page for editing existing comics.
 - `frontend/app/(protected)/comics/[comicId]/chapters/create/page.tsx` - Page for adding new chapters to a comic.
 - `frontend/app/(protected)/comics/[comicId]/chapters/[chapterId]/edit/page.tsx` - Page for editing chapter details.
+- `frontend/app/comics/[comicId]/page.tsx` - Public comic detail page. Displays comic information and chapter list. Authors see edit tools, chapter management (edit/delete), and add chapter button. Regular users see read-only chapter list with links to read.
+- `frontend/app/comics/[comicId]/chapters/[chapterId]/page.tsx` - Public chapter reading page. Displays all chapter pages in sequence with navigation to previous/next chapters and a chapter selector dropdown.
 - `frontend/app/login/page.tsx` - Login page with email/password form
 - `frontend/app/register/page.tsx` - Registration page with email/password/username form
 - `frontend/app/api/[...path]/route.ts` - Catch-all API proxy that forwards requests to `BACKEND_TARGET_URL` and returns backend responses (status, body, headers), including cookie passthrough.
@@ -74,7 +76,7 @@ This proxy hides the actual backend host from the browser, allows changing backe
 
 ##### Components
 - **`frontend/components/ChapterList.tsx`** - Reusable chapter list component with edit/delete actions
-- **`frontend/components/ComicCard.tsx`** - Reusable comic card component for displaying comic metadata (thumbnail, title, description, categories) in a responsive grid. Links to the comic detail page (`/comics/[id]`). Follows the Dracula theme with `glass` styling, hover effects, and rounded corners.
+- **`frontend/components/ComicCard.tsx`** - Reusable comic card component for displaying comic metadata (thumbnail, title, description, categories) in a responsive grid. Links to the public comic detail page (`/comics/[id]`). Follows the Dracula theme with `glass` styling, hover effects, and rounded corners.
 
 ##### Shared Utilities
 - **`frontend/lib/api.ts`** - Eden treaty client configured with `BACKEND_URL = '/api/'` for type-safe backend API calls via the proxy. Used for custom app resources (profile, comics, chapters, roles).
@@ -170,7 +172,9 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
   - Creation and editing of comics with thumbnail upload and metadata (categories, genres).
   - Creation and editing of chapters within comics.
   - Management dashboard with delete confirmation popups.
-- **Landing page**: Public frontend displaying latest, recent, and recommended comics using React Query and the ComicCard component. Fetches data from three public backend endpoints (`/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`).
+- **Landing page**: Public frontend displaying latest, recent, and recommended comics using React Query and the ComicCard component. Fetches data from three public backend endpoints (`/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`). ComicCard links to the comic detail page.
+- **Comic detail page**: Public page (`/comics/[comicId]`) showing comic info and chapter list. Authors see edit tools, chapter management (edit/delete), and add chapter button. Readers see read-only chapter list.
+- **Chapter reading page**: Public page (`/comics/[comicId]/chapters/[chapterId]`) for reading comics with page-by-page navigation, chapter selector, and prev/next chapter buttons.
 - **Type-safe API**: Eden treaty client + TypeBox schemas
 - **Backend**: Elysia.js with OpenAPI/Swagger
 - **Database**: Drizzle ORM with PostgreSQL (PGlite for dev)
@@ -193,6 +197,38 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
 - Recommendation algorithm (currently uses latest updated comics)
 - Filtering and sorting options (by category, genre, date, etc.)
 - Infinite scroll for comic grids
+
+## Comic Management API
+
+### Chapter Page Management API
+The chapter page management API handles operations for individual pages within chapters, including reordering pages.
+
+#### PATCH `/chapter-images/batch/swap` — Swap Multiple Chapter Page Positions
+- **Auth**: Required (`userAuth`)
+- **Content-Type**: `application/json`
+- **Description**: Swaps the positions of multiple chapter pages in a single operation. The API accepts an array of swap objects, each specifying a page ID and its new target position. After applying the requested swaps, the system re-indexes all pages in the chapter to ensure sequential ordering without gaps or duplicates.
+- **Request Body**:
+  ```json
+  {
+    "swaps": [
+      {
+        "pageId": 1,
+        "newPosition": 3
+      },
+      {
+        "pageId": 2,
+        "newPosition": 1
+      }
+    ]
+  }
+  ```
+- **Response**:
+  - `200`: Returns the updated chapter page objects with their new positions
+  - `400`: Invalid request (missing or invalid swap data)
+  - `401`: Unauthorized
+  - `403`: Forbidden (user is not the author or pages belong to different chapters)
+  - `404`: Some pages not found
+  - `500`: Internal server error
 
 ## Comic Management API
 
@@ -235,6 +271,40 @@ Comics support full CRUD operations with thumbnail image upload via HackClub CDN
 - **Auth**: Required (owner only)
 - **Process**: Deletes thumbnail from CDN, then deletes comic record (cascades to chapters).
 
+## Public Comic Reading
+
+### Overview
+The platform provides public-facing pages for browsing and reading comics without requiring authentication.
+
+### Comic Detail Page (`/comics/[comicId]`)
+- **Endpoint**: `GET /comics/:id` (public)
+- **Features**:
+  - Displays comic metadata: title, description, thumbnail, categories, genres
+  - Lists all chapters sorted by index
+  - **Author view** (if `comic.authorId === currentUser.id`):
+    - Edit comic button linking to `/comics/[comicId]/edit`
+    - Add Chapter button linking to `/comics/[comicId]/chapters/create`
+    - Chapter list with edit/delete actions (uses `ChapterList` component)
+  - **Reader view** (non-authors):
+    - Chapter list with links to read each chapter
+    - Shows page count per chapter
+- **Data fetching**: Uses `api.api.comics({ id }).get()` with included chapters
+
+### Chapter Reading Page (`/comics/[comicId]/chapters/[chapterId]/read`)
+- **Endpoints used**:
+  - `GET /chapters/:id` — fetch chapter with pages
+  - `GET /chapters/comic/:comicId` — fetch all chapters for navigation
+- **Features**:
+  - Displays chapter title and comic title in sticky header
+  - Renders all chapter pages as images in sequence
+  - Navigation bar with:
+    - Previous chapter button (disabled on first chapter)
+    - Chapter selector dropdown (jump to any chapter)
+    - Next chapter button (disabled on last chapter)
+  - Sticky footer with navigation controls
+- **Page layout**: Single-column reading flow with max-width container
+- **Image handling**: Uses Next.js `Image` component with `priority` for first pages
+
 ## Comic API
 
 ### Cursor-Based Pagination (Keyset Pagination)
@@ -255,9 +325,9 @@ All cluster comic endpoints use efficient cursor-based pagination instead of `OF
 | `GET /comics/latest-update` | `updated_at DESC` | Fetches all comics for dashboard |
 | `GET /comics/recently-added` | `created_at DESC` | Recently added comics (no chapters included) |
 | `GET /comics/recommended` | `updated_at DESC` | Recommended comics (currently same as latest-update) |
-| `GET /comics/:id` | — | Fetches a single comic by ID |
+| `GET /comics/:id` | — | Fetches a single comic by ID (includes chapters) |
 
-**Public endpoints** (no authentication required): `/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`. Used by the landing page.
+**Public endpoints** (no authentication required): `/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`, `/comics/:id`, `/chapters/:id`, `/chapters/comic/:comicId`. Used by the landing page and comic reading pages.
 
 ## Authentication System
 
