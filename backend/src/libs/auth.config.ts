@@ -11,6 +11,10 @@ const cookieOptions: CookieOptions = {
 	partitioned: true,
 };
 
+console.log(
+	new URL(process.env.BASE_URL || "http://localhost:3001/api/auth").hostname,
+);
+
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -46,17 +50,18 @@ export const auth = betterAuth({
 	secret: process.env.BETTER_AUTH_SECRET!,
 	plugins: [openAPI(), bearer()],
 	advanced: {
-		cookies: {
-			session_token: {
-				attributes: cookieOptions,
-			},
-			state: {
-				attributes: cookieOptions,
-			},
-		},
+		// cookies: {
+		// 	session_token: {
+		// 		attributes: cookieOptions,
+		// 	},
+		// 	state: {
+		// 		attributes: cookieOptions,
+		// 	},
+		// },
 		defaultCookieAttributes: cookieOptions,
 		crossSubDomainCookies: {
 			enabled: true,
+			domain: new URL(process.env.BASE_URL || "http://localhost:3001/api/auth").hostname,
 		},
 	},
 });
