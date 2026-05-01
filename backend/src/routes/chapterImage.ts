@@ -655,7 +655,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 					let task;
 
 					if (existingTask) {
-						if (existingTask.status === "claim") {
+						if (existingTask.status === "claimed") {
 							return ctx.status(409, {
 								success: false,
 								message: "Page is currently being processed",
@@ -675,7 +675,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 								.returning()
 								.then((res) => res[0]);
 						} else if (
-							existingTask.status === "complete" ||
+							existingTask.status === "completed" ||
 							existingTask.status === "failed"
 						) {
 							// Create new task
@@ -686,8 +686,6 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 									chapterPageId: pageId,
 									chapterPageSubtitlesId: subtitle!.id,
 									metadata: { isInPaint: inpaintImage },
-									stepStatus: { ocr: false },
-									stepResult: { ocr: null },
 								})
 								.returning()
 								.then((res) => res[0]);

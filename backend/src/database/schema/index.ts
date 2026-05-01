@@ -1,4 +1,3 @@
-import { taskStatusEnum } from "./queue";
 import { table } from "./relations";
 
 export const profile = table.profile;
@@ -13,6 +12,5 @@ export const chapterPages = table.chapterPages;
 export const chapterPageSubtitles = table.chapterPageSubtitles;
 export const AppState = table.AppState;
 export const taskTable = table.taskTable;
-export const taskEnum = taskStatusEnum
 
 export { schemaRelations, table } from "./relations";

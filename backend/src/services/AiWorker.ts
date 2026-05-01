@@ -1,13 +1,13 @@
-import Elysia from "elysia";
-import { EventEmitter } from "node:events";
-import { db } from "../database";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, Output } from "ai";
-import { table } from "../database/schema";
 import { eq } from "drizzle-orm";
+import Elysia from "elysia";
+import { EventEmitter } from "node:events";
 import { inspect } from "node:util";
+import { db } from "../database";
+import { table } from "../database/schema";
+import { type OCRPageOutput, OCRPageSchema } from "../types";
 import { getOrCreateSystemProfile } from "../utils/system-user";
-import z from "zod";
 
 interface EventMap extends Record<string, unknown[]> {}
 
@@ -98,7 +98,7 @@ export class AiWorker extends EventEmitter<EventMap> {
 			try {
 				await db
 					.update(table.taskTable)
-					.set({ status: "claim" })
+					.set({ status: "claimed" })
 					.where(eq(table.taskTable.id, task.id));
 				console.log(`Processing task`, task);
 				const chapterPage = await db.query.chapterPages.findFirst({
@@ -151,7 +151,7 @@ export class AiWorker extends EventEmitter<EventMap> {
 					await db
 						.update(table.chapterPageSubtitles)
 						.set({
-							boxs,
+							boxs: { boxs: boxs },
 							content,
 							updatedAt: new Date(),
 						})

@@ -113,7 +113,10 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 
 	authorId: text("author_id").notNull(),
 
-	boxs: jsonb("box").notNull().$type<SubtitleBox[]>(),
+	boxs: jsonb("box")
+		.notNull()
+		.$type<{ boxs: SubtitleBox[] }>()
+		.default({ boxs: [] }),
 	inpaintedImage: text(),
 	content: text(),
 
