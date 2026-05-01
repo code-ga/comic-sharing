@@ -1,3 +1,5 @@
+"use client"
+
 import { logger } from "./lib/logger";
 export const BACKEND_URL =
 	process.env.NEXT_BACKEND_URL || "http://localhost:3001";
