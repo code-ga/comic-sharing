@@ -39,7 +39,6 @@ export default function CreateComicPage() {
 			if (genreArray.length)
 				genreArray.map((data) => formData.append("genres", data));
 			if (thumbnail) formData.append("thumbnail", thumbnail);
-			// using native fetch
 			const res = await fetch(`${BACKEND_URL}/api/comics`, {
 				method: "POST",
 				body: formData,
