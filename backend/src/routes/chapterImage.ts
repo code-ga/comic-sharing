@@ -701,8 +701,6 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 								chapterPageId: pageId,
 								chapterPageSubtitlesId: subtitle!.id,
 								metadata: { isInPaint: inpaintImage },
-								stepStatus: { ocr: false },
-								stepResult: { ocr: null },
 							})
 							.returning()
 							.then((res) => res[0]);

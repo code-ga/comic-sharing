@@ -6,6 +6,7 @@ import {
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
+import { OCRPageOutput } from "../../types";
 
 export const taskStatusEnum = pgEnum("queue_status", [
 	"claim",
@@ -21,8 +22,8 @@ export const taskTable = pgTable("worker_queue", {
 	chapterPageId: serial().notNull(),
 	chapterPageSubtitlesId: serial().notNull(),
 	metadata: jsonb().$type<{ isInPaint: boolean }>(),
-	stepStatus: jsonb().$type<{ ocr: boolean }>(),
-	stepResult: jsonb().$type<{ ocr: any }>(),
+	stepStatus: jsonb().$type<{ ocr?: boolean, metadataExtraction?: boolean }>().default({}),
+	stepResult: jsonb().$type<{ ocr?: OCRPageOutput, metadataExtraction?: any }>().default({}),
 
 	errorLog: text(),
 

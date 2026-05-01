@@ -49,6 +49,7 @@ export const chapters = pgTable("chapter", {
 
 	authorId: text("author_id").notNull(),
 	index: integer("index").notNull().default(0),
+	vibes: text("vibes").notNull().array().default([]),
 
 	title: text("title").notNull(),
 

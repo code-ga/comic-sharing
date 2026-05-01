@@ -62,49 +62,14 @@ JSON format:
 }
 `;
 
-export const OCRPageSchema = z.object({
-	page_language: z.string(),
-
-	reading_direction: z.enum(["ltr", "rtl", "vertical"]),
-
-	blocks: z.array(
-		z.object({
-			id: z.string(),
-
-			type: z.enum([
-				"dialogue",
-				"narration",
-				"sound_effect",
-				"title",
-				"background_text",
-			]),
-
-			text: z.string(),
-
-			confidence: z.number().min(0).max(1),
-
-			bbox: z.object({
-				x: z.number(),
-				y: z.number(),
-				width: z.number(),
-				height: z.number(),
-			}),
-
-			order: z.number().int().nonnegative(),
-		}),
-	),
-});
-
-type OCRPageOutput = z.infer<typeof OCRPageSchema>;
 export class AiWorker extends EventEmitter<EventMap> {
 	openRouter: import("@openrouter/ai-sdk-provider").OpenRouterProvider;
 	loopInterval: NodeJS.Timeout | undefined;
 	constructor() {
 		super();
 		this.openRouter = createOpenRouter({
-			apiKey:
-				"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", //  process.env.HACK_CLUB_AI_API_KEY,
-			// baseUrl: "https://ai.hackclub.com/proxy/v1",
+			apiKey: process.env.HACK_CLUB_AI_API_KEY,
+			baseUrl: "https://ai.hackclub.com/proxy/v1",
 		});
 	}
 	async Start() {
@@ -197,7 +162,7 @@ export class AiWorker extends EventEmitter<EventMap> {
 					await db
 						.update(table.taskTable)
 						.set({
-							status: "complete",
+							status: "pending",
 							stepStatus: { ocr: true },
 							stepResult: { ocr: ocrResult },
 							updatedAt: new Date(),
