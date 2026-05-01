@@ -2,14 +2,14 @@ import Elysia from "elysia";
 import { EventEmitter } from "node:events";
 import { db } from "../database";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
 import { table } from "../database/schema";
 import { eq } from "drizzle-orm";
 import { inspect } from "node:util";
-import { getInitialRoleIds } from "../utils/role";
 import { getOrCreateSystemProfile } from "../utils/system-user";
+import z from "zod";
 
-interface EventMap extends Record<string, any[]> {}
+interface EventMap extends Record<string, unknown[]> {}
 
 const ocrSystemPrompt = `You are an OCR engine specialized in comic, manga, and manhua pages.
 
@@ -62,14 +62,49 @@ JSON format:
 }
 `;
 
+export const OCRPageSchema = z.object({
+	page_language: z.string(),
+
+	reading_direction: z.enum(["ltr", "rtl", "vertical"]),
+
+	blocks: z.array(
+		z.object({
+			id: z.string(),
+
+			type: z.enum([
+				"dialogue",
+				"narration",
+				"sound_effect",
+				"title",
+				"background_text",
+			]),
+
+			text: z.string(),
+
+			confidence: z.number().min(0).max(1),
+
+			bbox: z.object({
+				x: z.number(),
+				y: z.number(),
+				width: z.number(),
+				height: z.number(),
+			}),
+
+			order: z.number().int().nonnegative(),
+		}),
+	),
+});
+
+type OCRPageOutput = z.infer<typeof OCRPageSchema>;
 export class AiWorker extends EventEmitter<EventMap> {
 	openRouter: import("@openrouter/ai-sdk-provider").OpenRouterProvider;
 	loopInterval: NodeJS.Timeout | undefined;
 	constructor() {
 		super();
 		this.openRouter = createOpenRouter({
-			apiKey: process.env.HACK_CLUB_AI_API_KEY,
-			baseUrl: "https://ai.hackclub.com/proxy/v1",
+			apiKey:
+				"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", //  process.env.HACK_CLUB_AI_API_KEY,
+			// baseUrl: "https://ai.hackclub.com/proxy/v1",
 		});
 	}
 	async Start() {
@@ -98,16 +133,20 @@ export class AiWorker extends EventEmitter<EventMap> {
 			try {
 				await db
 					.update(table.taskTable)
-					.set({ status: "pending" })
+					.set({ status: "claim" })
 					.where(eq(table.taskTable.id, task.id));
-				console.log(`Prosces task`, task);
+				console.log(`Processing task`, task);
 				const chapterPage = await db.query.chapterPages.findFirst({
 					where: { id: task.chapterPageId },
 				});
 				if (!chapterPage) throw new Error("Task missing chapter page");
+
 				if (!task.stepStatus?.ocr) {
-					const text = await generateText({
+					const response = await generateText({
 						model: this.openRouter("baidu/qianfan-ocr-fast:free"),
+						output: Output.object({
+							schema: OCRPageSchema,
+						}),
 						messages: [
 							{
 								role: "system",
@@ -128,12 +167,40 @@ export class AiWorker extends EventEmitter<EventMap> {
 							},
 						],
 					});
-					console.log(text.content);
+
+					const ocrResult: OCRPageOutput = OCRPageSchema.parse(response.output);
+					const boxs = ocrResult.blocks.map((block) => ({
+						x: block.bbox.x,
+						y: block.bbox.y,
+						width: block.bbox.width,
+						height: block.bbox.height,
+						text: block.text,
+						translatedText: {},
+					}));
+
+					const content = ocrResult.blocks
+						.map((block) => block.text.trim())
+						.filter(Boolean)
+						.join("\n\n");
+
+					await db
+						.update(table.chapterPageSubtitles)
+						.set({
+							boxs,
+							content,
+							updatedAt: new Date(),
+						})
+						.where(
+							eq(table.chapterPageSubtitles.id, task.chapterPageSubtitlesId),
+						);
+
 					await db
 						.update(table.taskTable)
 						.set({
-							status: "failed",
-							errorLog: "Umimplementd",
+							status: "complete",
+							stepStatus: { ocr: true },
+							stepResult: { ocr: ocrResult },
+							updatedAt: new Date(),
 						})
 						.where(eq(table.taskTable.id, task.id));
 				}
@@ -143,6 +210,7 @@ export class AiWorker extends EventEmitter<EventMap> {
 					.set({
 						status: "failed",
 						errorLog: inspect(error),
+						updatedAt: new Date(),
 					})
 					.where(eq(table.taskTable.id, task.id));
 			}

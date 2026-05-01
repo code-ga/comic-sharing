@@ -95,6 +95,15 @@ export const chapterPages = pgTable("chapter_pages", {
 export type ChapterPage = InferSelectModel<typeof chapterPages>;
 export type ChapterPageInsert = InferInsertModel<typeof chapterPages>;
 
+export type SubtitleBox = {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	text: string;
+	translatedText: { [key: string]: string };
+};
+
 export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 	id: serial("id").primaryKey(),
 	chapterPageId: serial("chapter_page_id")
@@ -103,14 +112,7 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 
 	authorId: text("author_id").notNull(),
 
-	boxs: jsonb("box").notNull().$type<{
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-		text: string;
-		translatedText: { [key: string]: string }; // language code as key and translated text as value
-	}>(),
+	boxs: jsonb("box").notNull().$type<SubtitleBox[]>(),
 	inpaintedImage: text(),
 	content: text(),
 

@@ -241,8 +241,12 @@ The platform includes an AI-powered processing system for comic pages, handling 
 1. **Queue Addition**: User adds page to queue via API
 2. **Subtitle Creation**: System ensures `chapter_page_subtitle` exists (creates with system user if needed)
 3. **Task Creation/Update**: Creates or updates `worker_queue` entry
-4. **AI Worker Processing**: Background worker claims tasks and processes OCR/inpainting
-5. **Result Storage**: Updates subtitle with extracted text and processed images
+4. **AI Worker Processing**: Background worker claims tasks and processes OCR/inpainting.
+   - `backend/src/services/AiWorker.ts` currently runs OCR on pending tasks and updates the subtitle record.
+   - The worker marks a task `claim` while processing, then `complete` when OCR is persisted.
+5. **Result Storage**: Updates `chapter_page_subtitle` with extracted boxes and text.
+   - `boxs` stores an array of OCR text blocks and bounding boxes.
+   - `content` stores the combined extracted text for the page.
 
 #### Files & Responsibilities
 - **`backend/src/routes/chapterImage.ts`**: `POST /add-queue/:id` endpoint for queue management
@@ -250,6 +254,7 @@ The platform includes an AI-powered processing system for comic pages, handling 
 - **`backend/src/utils/system-user.ts`**: Provides system user for automated subtitle creation
 - **`backend/src/database/schema/queue.ts`**: Queue table schema definition
 - **`frontend/app/(protected)/comics/[comicId]/chapters/[chapterId]/edit/page.tsx`**: Chapter edit page with AI queue functionality. Each chapter page displays an "AI Process" button that adds the page to the processing queue. Shows loading states and tracks queued pages to prevent duplicate submissions.
+- **`frontend/app/comics/[comicId]/chapters/[chapterId]/read/page.tsx`**: Public reader page featuring a responsive 3-column grid layout on large screens. The comic image is centered in the middle column (max-width 800px) with a seamless vertical flow (no gaps between pages). OCR text boxes alternate between the left and right side columns and are `sticky` during page scroll. On mobile, the OCR box stacks below each image. Features a wider `1600px` container.
 
 ### Landing Page Future Enhancements
 - Pagination / lazy loading for large comic collections

@@ -3,9 +3,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api, getEdenErrorMessage } from "@/lib/api";
-import Link from "next/link";
 import Image from "next/image";
-import { use, useState } from "react";
+import Link from "next/link";
+import { use } from "react";
 import { useRouter } from "next/navigation";
 
 interface ReadChapterPageProps {
@@ -70,7 +70,27 @@ export default function ReadChapterPage({
 	const nextChapter =
 		currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
 
-	if (isLoading) {
+	const {
+		data: chapterPagesData,
+		isLoading: isPagesLoading,
+		error: pagesError,
+	} = useQuery({
+		queryKey: ["chapterPages", chapterId],
+		queryFn: async () => {
+			const { data, error } = await api.api["chapter-images"]
+				.chapter({ "chapter-id": Number(chapterId) })
+				.get();
+			if (error) throw new Error(getEdenErrorMessage(error));
+			return data.data;
+		},
+	});
+
+	const chapterPages = chapterPagesData || [];
+	const sortedPages = [...chapterPages].sort(
+		(a, b) => a.pageNumber - b.pageNumber,
+	);
+
+	if (isLoading || isPagesLoading) {
 		return (
 			<div className="min-h-screen flex flex-col">
 				{/* Header Skeleton */}
@@ -96,7 +116,7 @@ export default function ReadChapterPage({
 		);
 	}
 
-	if (error || !chapter || !comic) {
+	if (error || pagesError || !chapter || !comic) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="glass rounded-2xl border border-border/50 p-8 text-center max-w-md">
@@ -113,6 +133,7 @@ export default function ReadChapterPage({
 						className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/80 transition-colors"
 					>
 						<svg
+							aria-hidden="true"
 							className="w-4 h-4"
 							fill="none"
 							stroke="currentColor"
@@ -132,11 +153,6 @@ export default function ReadChapterPage({
 		);
 	}
 
-	// Sort pages by page number
-	const sortedPages = [...chapter.pages].sort(
-		(a, b) => a.pageNumber - b.pageNumber,
-	);
-
 	return (
 		<div className="min-h-screen flex flex-col bg-background">
 			{/* Sticky Header */}
@@ -148,6 +164,7 @@ export default function ReadChapterPage({
 							className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
 						>
 							<svg
+								aria-hidden="true"
 								className="w-4 h-4"
 								fill="none"
 								stroke="currentColor"
@@ -171,7 +188,7 @@ export default function ReadChapterPage({
 
 			{/* Main Reading Area */}
 			<main className="flex-1">
-				<div className="max-w-4xl mx-auto w-full px-4 py-6 space-y-4">
+				<div className="max-w-[1600px] mx-auto w-full px-4 py-6 space-y-4">
 					{/* Chapter Title */}
 					<div className="text-center space-y-2 mb-8">
 						<h1 className="text-2xl font-bold text-foreground">
@@ -183,10 +200,14 @@ export default function ReadChapterPage({
 					{/* Reading Mode Toggle (Bilingual/Original) */}
 					<div className="flex justify-center mb-4">
 						<div className="inline-flex items-center gap-2 p-1 bg-muted/30 rounded-xl">
-							<button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg">
+							<button
+								type="button"
+								className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg"
+							>
 								Original
 							</button>
 							<button
+								type="button"
 								className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors"
 								disabled
 							>
@@ -196,30 +217,84 @@ export default function ReadChapterPage({
 					</div>
 
 					{/* Pages */}
-					<div className="space-y-1">
-						{sortedPages.map((page) => (
-							<div
-								key={page.id}
-								className="relative bg-muted/20 rounded-lg overflow-hidden border border-border/50"
-							>
-								<img
-									src={page.imageUrl}
-									alt={`Page ${page.pageNumber}`}
-									width={800}
-									height={1200}
-									className="w-full h-auto"
-									// priority={page.pageNumber <= 2}
-								/>
-								{/* Page number indicator */}
-								<div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
-									{page.pageNumber}
+					<div className="space-y-0">
+						{sortedPages.map((page) => {
+							const pageSubtitle = page.subtitle?.[0];
+							const pageContent = pageSubtitle?.content?.trim();
+							const isOCRLeft = page.id % 2 === 0;
+
+							const OCRBox = (
+								<div className="w-80 flex shrink-0 flex-col rounded-3xl border border-border/50 bg-background/60 p-4 h-fit sticky top-24">
+									<div className="mb-4 flex items-center justify-between gap-3">
+										<div>
+											<h3 className="text-base font-semibold text-foreground">
+												OCR for page {page.pageNumber}
+											</h3>
+											<p className="text-xs text-muted-foreground">
+												{pageSubtitle?.boxs?.length
+													? `${pageSubtitle.boxs.length} boxes detected`
+													: "No OCR available yet."}
+											</p>
+										</div>
+										{pageSubtitle?.boxs?.length ? (
+											<span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+												{pageSubtitle.boxs.length} boxes
+											</span>
+										) : null}
+									</div>
+
+									{pageContent ? (
+										<pre className="whitespace-pre-wrap wrap-break-word grow rounded-3xl bg-muted/70 p-4 text-sm leading-6 text-foreground max-h-[60vh] overflow-y-auto">
+											{pageContent}
+										</pre>
+									) : (
+										<div className="grow rounded-3xl bg-muted/70 p-4 text-sm text-muted-foreground">
+											No OCR result available for this page yet.
+										</div>
+									)}
 								</div>
-							</div>
-						))}
+							);
+
+							return (
+								<div
+									key={page.id}
+									className="grid grid-cols-1 lg:grid-cols-[320px_1fr_320px] gap-8 items-start bg-background"
+								>
+									{/* Left Column */}
+									<div className="hidden lg:flex justify-end">
+										{isOCRLeft ? OCRBox : <div className="w-80" />}
+									</div>
+
+									{/* Center Column (Image) */}
+									<div className="relative bg-background mx-auto w-full max-w-[800px]">
+										<img
+											src={page.imageUrl}
+											alt={`Page ${page.pageNumber}`}
+											width={800}
+											height={1200}
+											className="w-full h-auto"
+										/>
+										<div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/60 backdrop-blur-md text-white text-xs font-medium rounded-full border border-white/10">
+											Page {page.pageNumber}
+										</div>
+										
+										{/* Mobile OCR Toggle or Display */}
+										<div className="lg:hidden mt-4 px-4">
+											{OCRBox}
+										</div>
+									</div>
+
+									{/* Right Column */}
+									<div className="hidden lg:flex justify-start">
+										{!isOCRLeft ? OCRBox : <div className="w-80" />}
+									</div>
+								</div>
+							);
+						})}
 					</div>
 
 					{/* No Pages Message */}
-					{(!sortedPages || sortedPages.length === 0) && (
+					{sortedPages.length === 0 && (
 						<div className="glass rounded-xl border border-border/50 p-8 text-center">
 							<p className="text-muted-foreground">
 								No pages available for this chapter.
@@ -239,6 +314,7 @@ export default function ReadChapterPage({
 							className="flex items-center gap-2 px-4 py-2.5 bg-muted/50 hover:bg-muted rounded-xl transition-all group"
 						>
 							<svg
+								aria-hidden="true"
 								className="w-4 h-4 text-muted-foreground group-hover:text-foreground"
 								fill="none"
 								stroke="currentColor"
@@ -253,7 +329,7 @@ export default function ReadChapterPage({
 							</svg>
 							<div className="text-left">
 								<div className="text-xs text-muted-foreground">Previous</div>
-								<div className="text-sm font-medium truncate max-w-[120px]">
+								<div className="text-sm font-medium truncate max-w-30">
 									Ch.{prevChapter.index}: {prevChapter.title}
 								</div>
 							</div>
@@ -301,11 +377,12 @@ export default function ReadChapterPage({
 						>
 							<div>
 								<div className="text-xs text-muted-foreground">Next</div>
-								<div className="text-sm font-medium truncate max-w-[120px]">
+								<div className="text-sm font-medium truncate max-w-30">
 									Ch.{nextChapter.index}: {nextChapter.title}
 								</div>
 							</div>
 							<svg
+								aria-hidden="true"
 								className="w-4 h-4 text-primary"
 								fill="none"
 								stroke="currentColor"
