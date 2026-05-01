@@ -12,8 +12,7 @@ export const table = {
 	// chapterPages: comic.chapterPages,
 	// chapterPageSubtitles: comic.chapterPageSubtitles,
 	...comic,
-	...queue,
-	taskStatusEnum: undefined,
+	taskTable: queue.taskTable,
 } as const;
 
 export const schemaRelations = defineRelations(table, (r) => ({
