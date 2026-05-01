@@ -177,6 +177,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							.values(newPages)
 							.returning();
 
+						// Update chapter.pageIds with new page IDs appended
+						const newPageIds = [...existingPages.map((p) => p.id), ...inserted.map((p) => p.id)];
+						await tx
+							.update(schema.chapters)
+							.set({
+								pageIds: sql`ARRAY[${newPageIds}]::text[]`,
+							})
+							.where(eq(schema.chapters.id, chapterId));
+
 						return inserted;
 					});
 
@@ -216,7 +225,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 					const profile = ctx.profile;
 					const pageId = Number(ctx.params["id"]);
 
-					// Find the page to delete
+					// Find the page to delete with its chapter
 					const pageToDelete = await db.query.chapterPages.findFirst({
 						where: { id: pageId },
 					});
@@ -262,6 +271,20 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 									),
 								);
 						}
+
+						// Update chapter.pageIds by removing the deleted page ID
+						const remainingPages = await tx.query.chapterPages.findMany({
+							where: { chapterId: pageToDelete.chapterId },
+							orderBy: { pageNumber: "asc" },
+						});
+						const updatedPageIds = remainingPages.map((p) => p.id);
+						await tx
+							.update(schema.chapters)
+							.set({
+								pageIds: sql`ARRAY[${updatedPageIds}]::text[]`,
+							})
+							.where(eq(schema.chapters.id, pageToDelete.chapterId));
+
 						await removeImage(deleted.map((doc) => doc.imageUrl));
 
 						return deleted[0];
@@ -345,7 +368,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							)
 							.returning();
 
-						// Re-index all remaining pages sequentially
+						// Re-index all remaining pages sequentially and update chapter.pageIds
 						const remainingPages = await tx.query.chapterPages.findMany({
 							where: { chapterId: firstChapterId },
 							orderBy: {
@@ -362,6 +385,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 									.where(eq(schema.chapterPages.id, remainingPages[i].id));
 							}
 						}
+
+						// Update chapter.pageIds with remaining page IDs
+						const updatedPageIds = remainingPages.map((p) => p.id);
+						await tx
+							.update(schema.chapters)
+							.set({
+								pageIds: sql`ARRAY[${updatedPageIds}]::text[]`,
+							})
+							.where(eq(schema.chapters.id, firstChapterId));
 
 						await removeImage(deleted.map((doc) => doc.imageUrl));
 
@@ -544,6 +576,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							}
 						}
 
+						// Update chapter.pageIds to match new ordering
+						const finalPageIds = remainingPages.map((p) => p.id);
+						await tx
+							.update(schema.chapters)
+							.set({
+								pageIds: sql`ARRAY[${finalPageIds}]::text[]`,
+							})
+							.where(eq(schema.chapters.id, chapterId));
+
 						// Return updated moved pages
 						const finalPages = await tx.query.chapterPages.findMany({
 							where: {
@@ -636,7 +677,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 					});
 
 					if (!subtitle) {
-						subtitle = await db
+						const insertedSubtitle = await db
 							.insert(schema.chapterPageSubtitles)
 							.values({
 								chapterPageId: pageId,
@@ -645,6 +686,24 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							})
 							.returning()
 							.then((res) => res[0]);
+
+						if (!insertedSubtitle) {
+							return ctx.status(500, {
+								success: false,
+								message: "Failed to create subtitle",
+								timestamp: Date.now(),
+							});
+						}
+
+						subtitle = insertedSubtitle;
+
+						// Add subtitle ID to page.subtitleIds
+						await db
+							.update(schema.chapterPages)
+							.set({
+								subtitleIds: sql`array_append(${schema.chapterPages.subtitleIds}, ${subtitle.id})`,
+							})
+							.where(eq(schema.chapterPages.id, pageId));
 					}
 
 					// Check existing task

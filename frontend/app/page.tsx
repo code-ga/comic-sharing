@@ -4,6 +4,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { api, getEdenErrorMessage } from "../lib/api";
 import ComicCard, { type Comic } from "../components/ComicCard";
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 
 export default function Home() {
 	// Fetch latest updated comics
@@ -99,32 +100,8 @@ export default function Home() {
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			{/* Header */}
-			<header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-				<div className="mx-auto max-w-7xl px-4 md:px-6 lg:px-8">
-					<div className="flex items-center justify-between h-16">
-						<Link href="/" className="flex items-center space-x-2">
-							<span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-								ComicShare
-							</span>
-						</Link>
-						<nav className="hidden md:flex items-center space-x-6">
-							<Link
-								href="/login"
-								className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-							>
-								Sign in
-							</Link>
-							<Link
-								href="/register"
-								className="px-4 py-2 text-sm font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/80 transition-colors"
-							>
-								Get Started
-							</Link>
-						</nav>
-					</div>
-				</div>
-			</header>
+			{/* Navbar */}
+			<Navbar variant="public" />
 
 			{/* Main Content */}
 			<main className="flex-1">

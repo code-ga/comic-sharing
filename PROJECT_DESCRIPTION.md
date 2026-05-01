@@ -75,13 +75,19 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - `frontend/app/(protected)/comics/[comicId]/chapters/create/page.tsx` - Page for adding new chapters to a comic.
 - `frontend/app/(protected)/comics/[comicId]/chapters/[chapterId]/edit/page.tsx` - Page for editing chapter details.
 - `frontend/app/comics/[comicId]/page.tsx` - Public comic detail page. Displays comic information and chapter list. Authors see edit tools, chapter management (edit/delete), and add chapter button. Regular users see read-only chapter list with links to read.
-- `frontend/app/comics/[comicId]/chapters/[chapterId]/page.tsx` - Public chapter reading page. Displays all chapter pages in sequence with navigation to previous/next chapters and a chapter selector dropdown.
+- `frontend/app/comics/layout.tsx` - Layout wrapper for the comics section. Provides a consistent top navigation bar with a "Back to Home" link and wraps child pages in a structured container. Applies to all routes under `/comics/*`.
+- `frontend/app/comics/[comicId]/chapters/[chapterId]/read/page.tsx` - Public chapter reading page featuring a responsive three-column layout. Uses `ReaderHeader` component for top navigation and chapter controls. Displays all chapter pages with OCR sidebars.
 - `frontend/app/login/page.tsx` - Login page with email/password form
 - `frontend/app/register/page.tsx` - Registration page with email/password/username form
 - `frontend/app/api/[...path]/route.ts` - Catch-all API proxy that forwards requests to `BACKEND_TARGET_URL` and returns backend responses (status, body, headers), including cookie passthrough.
 - `frontend/app/page.tsx` - Landing page displaying comics in three sections (Recommended, Latest Updates, New Additions) using React Query and ComicCard components. Implements loading, error, and empty states. Fetch data from public endpoints (`/comics/latest-update`, `/comics/recently-added`, `/comics/recommended`).
 
 ##### Components
+- **`frontend/components/Navbar.tsx`** - Reusable navigation bar component with two variants:
+  - `public`: Displays gradient logo, Sign in link, and Get Started button (for landing and auth pages)
+  - `protected`: Displays logo, user greeting ("Hello, {name}"), and Sign out button (for authenticated area)
+  - Replaces inline header code from `app/page.tsx` (home) and `app/(protected)/layout.tsx` (protected area).
+- **`frontend/components/ReaderHeader.tsx`** - Header and navigation component for comic reading pages. Displays comic title breadcrumb, current chapter info, chapter selector dropdown, and prev/next chapter buttons. Replaces inline header and navigation from `app/comics/[comicId]/chapters/[chapterId]/read/page.tsx`.
 - **`frontend/components/ChapterList.tsx`** - Reusable chapter list component with edit/delete actions
 - **`frontend/components/ComicCard.tsx`** - Reusable comic card component for displaying comic metadata (thumbnail, title, description, categories) in a responsive grid. Links to the public comic detail page (`/comics/[id]`). Follows the Dracula theme with `glass` styling, hover effects, and rounded corners.
 
@@ -200,8 +206,42 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
 - **Advanced RBAC UI**: Role editor, permission assignment interface
 - **AI Worker System**: OCR and image inpainting processing for chapter pages
 
-### AI Worker Queue System
-The platform includes an AI-powered processing system for comic pages, handling OCR (text extraction) and optional image inpainting.
+## Database Schema Consistency Issues & Fixes (2026-05-01)
+
+### Parent Array Field Synchronization
+
+The database schema uses array fields to maintain child entity references on parent records:
+- `comic.chapter_ids` — array of chapter IDs belonging to a comic
+- `chapter.page_ids` — array of chapter page IDs belonging to a chapter
+- `chapter_pages.subtitle_ids` — array of subtitle IDs belonging to a page
+
+**Problem**: Several CRUD operations on child entities did not update the corresponding parent array fields, causing data inconsistency. For example, deleting a chapter did not remove its ID from the parent comic's `chapter_ids` array.
+
+**Root Cause**: The original implementation relied solely on database foreign keys with `ON DELETE CASCADE` for relational integrity, but the denormalized array fields were not kept in sync. This meant the array fields could become stale or incorrect after mutations.
+
+**Fix Strategy**: All mutations now update parent array fields within database transactions, using PostgreSQL array functions:
+- `array_append()` — add new child ID to parent array
+- `array_remove()` — remove child ID from parent array
+- `ARRAY[...]` — rebuild array in explicit order (for reorder operations)
+
+**Affected Endpoints**:
+- `DELETE /chapters/:id` — now removes chapter ID from `comic.chapter_ids`
+- `POST /chapter-images/add` — now appends new page IDs to `chapter.page_ids`
+- `DELETE /chapter-images/:id` — now removes page ID from `chapter.page_ids`
+- `DELETE /chapter-images/batch/delete` — now rebuilds `chapter.page_ids` to reflect remaining pages
+- `PATCH /chapter-images/batch/reorder` — now reorders `chapter.page_ids` to match the new page order
+- `POST /chapter-images/add-queue/:id` — now appends new subtitle ID to `chapter_pages.subtitle_ids` when creating a subtitle
+
+All operations maintain array consistency within transactions, ensuring parent references always match the actual child records.
+
+### Technical Notes
+
+- **ID Type Mismatch**: The schema defines `chapter_ids` and `page_ids` as `text[]` arrays, but foreign keys reference `serial` (integer) columns. Array operations handle implicit/explicit casting: `array_append()` implicitly casts integers to text; constructing new arrays with `ARRAY[...]` requires explicit cast to `text[]` to match column type. Consider normalizing to `integer[]` in a future migration.
+- **Critical Bug Fixed**: The `POST /chapters/comic/:comicId` endpoint incorrectly used `WHERE id = newChapter[0].id` (the new chapter's ID) instead of `WHERE id = :comicId` when updating the parent comic's `chapter_ids`. This would have updated the wrong record or no record at all. Fixed to use the correct comic ID.
+- **Reorder Implementation**: The reorder endpoint uses an in-memory array splice to compute final order, then re-indexes page numbers and updates the parent `page_ids` array in a single transaction.
+- **Cascading Deletes**: Database-level `ON DELETE CASCADE` constraints still handle automatic child deletion; the array updates are additional denormalization maintenance.
+
+## AI Worker Queue System
 
 #### Database Schema
 - **Table**: `worker_queue`
@@ -411,3 +451,83 @@ The authentication system uses **Better-Auth** for session management, backed by
 
 #### Auth Hook (Frontend)
 - `frontend/hooks/useAuth.ts`
+
+## Recent Refactorings
+
+### Layout & Navigation Component Extraction (2026-05-01)
+
+Extracted repeated navbar and layout header code into reusable components to improve maintainability and consistency across the application.
+
+**New Components Created:**
+
+- **`frontend/components/Navbar.tsx`** - Main navigation bar component with two variants:
+  - `public`: For unauthenticated pages (landing page, login, register). Shows gradient logo, "Sign in" link, and "Get Started" button.
+  - `protected`: For authenticated area (dashboard, create/edit pages). Shows logo, user greeting ("Hello, {name}"), and "Sign out" button with loading state.
+  - Uses `useAuth()` hook for session state and sign-out functionality.
+
+- **`frontend/components/ReaderHeader.tsx`** - Comic reader page header with chapter navigation. Includes:
+  - Top sticky header with comic title breadcrumb and current chapter info
+  - Bottom sticky navigation bar with previous/next chapter buttons and chapter selector dropdown
+  - Properly handles chapter ordering by index and disables buttons at boundaries
+
+**Files Refactored:**
+
+1. `frontend/app/(protected)/layout.tsx` - Replaced inline header with `<Navbar variant="protected" />`. Removed direct `Link` import; kept `useAuth`, `useEffect`, `usePathname`, `useRouter` imports.
+
+2. `frontend/app/page.tsx` (landing page) - Replaced inline header with `<Navbar variant="public" />`.
+
+3. `frontend/app/comics/[comicId]/chapters/[chapterId]/read/page.tsx` - Replaced inline header and bottom navigation with `<ReaderHeader />`. Removed duplicate chapter navigation logic (prev/next chapter calculation, chapter selector) which is now handled by the component. Cleaned up unused variables (`currentIndex`, `prevChapter`, `nextChapter`) and router usage for chapter selection (now uses `window.location.href`). Added `ReaderHeader` import and mapped chapter data to prop format.
+
+**Design Consistency:**
+
+- All navbar variants maintain Dracula theme styling (`bg-background/80`, `backdrop-blur-sm`, `border-border`).
+- Gradient logo (`from-primary to-accent`) used consistently in both variants.
+- Smooth transitions and glassmorphism effects preserved.
+- Mobile menu button placeholder retained in Navbar for future expansion.
+
+**Type Safety Improvements:**
+
+- `ReaderHeader` defines `ChapterInfo` interface for chapter data (`id`, `index`, `title`).
+- Removed `any` types from chapter mapping in read page.
+- Props typed explicitly with non-null assumptions after data loading checks.
+
+**Notes:**
+
+- Navbar component internally uses `useAuth()`; no need to pass auth state as props.
+- ReaderHeader handles its own sorting of chapters by index.
+- Chapter selector in ReaderHeader uses direct `window.location.href` instead of `router.push` to avoid Next.js navigation constraints within client components.
+
+**Future Work:**
+
+- Implement mobile menu dropdown in Navbar.
+- Consider extracting a `Breadcrumb` component if more complex breadcrumb navigation is needed elsewhere.
+- Add skeleton loading states for ReaderHeader while chapter data loads (currently parent handles loading state).
+
+### Comics Section Layout (2026-05-01)
+
+Created a layout wrapper for the `/comics` route section to provide consistent navigation structure.
+
+**New Layout:**
+
+- **`frontend/app/comics/layout.tsx`** - Client-side layout wrapper that:
+  - Renders a persistent top navigation bar with a "Back to Home" breadcrumb link
+  - Provides a `flex-1` main content area for child routes
+  - Uses subtle styling (`bg-muted/10`, `border-border/30`) to differentiate the comics section
+  - Does not impose width constraints—child pages handle their own container styling
+  - Wraps both `/[comicId]` (comic detail) and `/[comicId]/chapters/[chapterId]/read` (reader) pages
+
+**Design Rationale:**
+
+- The comic detail page already uses a `max-w-6xl` container with internal padding and spacing
+- The reader page already includes `ReaderHeader` and its own full-screen layout structure
+- The layout adds minimal overhead—just a back navigation and semantic `<main>` wrapper
+- Back link uses consistent icon and hover styles matching the Dracula theme
+
+**Child Pages Affected:**
+
+1. `frontend/app/comics/[comicId]/page.tsx` - Now rendered inside the comics layout with a back-to-home link above the comic detail card
+2. `frontend/app/comics/[comicId]/chapters/[chapterId]/read/page.tsx` - Now rendered inside the comics layout with back-to-home link above the reader header
+
+**Note on File Path Correction:**
+
+- Previously the PROJECT_DESCRIPTION listed the reading page as `chapters/[chapterId]/page.tsx`; it has been corrected to `chapters/[chapterId]/read/page.tsx` throughout the documentation.

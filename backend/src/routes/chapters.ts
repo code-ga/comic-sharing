@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import { eq } from "drizzle-orm";
-import Elysia from "elysia";
+import { eq, sql } from "drizzle-orm";
+import Elysia, { status } from "elysia";
 import { db } from "../database";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
@@ -134,6 +134,20 @@ export const chaptersRoute = new Elysia({ prefix: "/chapters" })
 							index: indexing ?? comic.chapters.length,
 						})
 						.returning();
+					if (!newChapter[0]) {
+						return status(500, {
+							success: false,
+							message: "Chapter create error ( server issue )",
+
+							timestamp: Date.now(),
+						});
+					}
+					await db
+						.update(schema.comics)
+						.set({
+							chapterIds: sql`array_append(${schema.comics.chapterIds}, ${newChapter[0].id})`,
+						})
+						.where(eq(schema.comics.id, Number(comicId)));
 					return ctx.status(201, {
 						success: true,
 						message: "Chapter created successfully",
@@ -248,10 +262,19 @@ export const chaptersRoute = new Elysia({ prefix: "/chapters" })
 							timestamp: Date.now(),
 						});
 					}
-					// Delete chapter
-					await db
-						.delete(schema.chapters)
-						.where(eq(schema.chapters.id, Number(id)));
+					// Delete chapter and update comic.chapterIds
+					await db.transaction(async (tx) => {
+						await tx
+							.delete(schema.chapters)
+							.where(eq(schema.chapters.id, Number(id)));
+						// Remove chapter ID from comic's chapterIds array
+						await tx
+							.update(schema.comics)
+							.set({
+								chapterIds: sql`array_remove(${schema.comics.chapterIds}, ${chapter.id})`,
+							})
+							.where(eq(schema.comics.id, chapter.comicId));
+					});
 					return ctx.status(200, {
 						success: true,
 						message: "Chapter deleted successfully",
