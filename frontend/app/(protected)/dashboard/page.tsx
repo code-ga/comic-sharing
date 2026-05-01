@@ -262,7 +262,7 @@ export default function DashboardPage() {
 									{comic.chapters && comic.chapters.length > 0 && (
 										<ChapterList
 											chapters={comic.chapters}
-											comicId={comic.id}
+											comicId={String(comic.id)}
 											onDeleteChapter={handleDeleteChapter}
 										/>
 									)}

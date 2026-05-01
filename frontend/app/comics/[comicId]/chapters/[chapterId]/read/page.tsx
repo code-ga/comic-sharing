@@ -208,7 +208,7 @@ export default function ReadChapterPage({
 									width={800}
 									height={1200}
 									className="w-full h-auto"
-									priority={page.pageNumber <= 2}
+									// priority={page.pageNumber <= 2}
 								/>
 								{/* Page number indicator */}
 								<div className="absolute bottom-2 right-2 px-2 py-1 bg-black/50 text-white text-xs rounded">

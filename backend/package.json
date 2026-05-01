@@ -13,9 +13,10 @@
   "dependencies": {
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/openapi": "^1.4.15",
+    "@openrouter/ai-sdk-provider": "^2.9.0",
     "@paralleldrive/cuid2": "^3.3.0",
     "@sinclair/typebox": "catalog:",
-    "ai": "^6.0.170",
+    "ai": "^6.0.172",
     "better-auth": "^1.6.9",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^1.0.0-beta.22",

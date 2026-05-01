@@ -7,6 +7,7 @@ import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
 import table, { table as schema } from "../database/schema";
 import { removeImage, uploadImages, calculateFileHash } from "../utils/files";
+import { getOrCreateSystemProfile } from "../utils/system-user";
 
 export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 	.use(authenticationMiddleware)
@@ -585,6 +586,147 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						401: errorResponseSchema,
 						403: errorResponseSchema,
 						404: errorResponseSchema,
+						500: errorResponseSchema,
+					},
+				},
+			)
+			.post(
+				"/add-queue/:id",
+				async (ctx) => {
+					const profile = ctx.profile;
+					const pageId = Number(ctx.params.id);
+					const { inpaintImage } = ctx.body;
+
+					// Get the chapter page
+					const chapterPage = await db.query.chapterPages.findFirst({
+						where: { id: pageId },
+						with: {
+							chapter: {
+								with: {
+									comic: true,
+								},
+							},
+						},
+					});
+
+					if (!chapterPage) {
+						return ctx.status(404, {
+							success: false,
+							message: "Chapter page not found",
+							timestamp: Date.now(),
+						});
+					}
+
+					// Check if user owns the chapter
+					if (
+						!chapterPage.chapter ||
+						chapterPage.chapter.authorId !== profile.id
+					) {
+						return ctx.status(403, {
+							success: false,
+							message: "Forbidden",
+							timestamp: Date.now(),
+						});
+					}
+
+					const systemProfileId = await getOrCreateSystemProfile();
+					// Find or create subtitle for the page
+					let subtitle = await db.query.chapterPageSubtitles.findFirst({
+						where: { chapterPageId: pageId },
+					});
+
+					if (!subtitle) {
+						subtitle = await db
+							.insert(schema.chapterPageSubtitles)
+							.values({
+								chapterPageId: pageId,
+								authorId: systemProfileId.id,
+								boxs: [] as any,
+							})
+							.returning()
+							.then((res) => res[0]);
+					}
+
+					// Check existing task
+					const existingTask = await db.query.taskTable.findFirst({
+						where: { chapterPageId: pageId },
+					});
+
+					let task;
+
+					if (existingTask) {
+						if (existingTask.status === "claim") {
+							return ctx.status(409, {
+								success: false,
+								message: "Page is currently being processed",
+								timestamp: Date.now(),
+							});
+						}
+
+						if (existingTask.status === "pending") {
+							// Update existing pending task
+							task = await db
+								.update(table.taskTable)
+								.set({
+									metadata: { isInPaint: inpaintImage },
+									updatedAt: new Date(),
+								})
+								.where(eq(table.taskTable.id, existingTask.id))
+								.returning()
+								.then((res) => res[0]);
+						} else if (
+							existingTask.status === "complete" ||
+							existingTask.status === "failed"
+						) {
+							// Create new task
+							task = await db
+								.insert(table.taskTable)
+								.values({
+									status: "pending",
+									chapterPageId: pageId,
+									chapterPageSubtitlesId: subtitle!.id,
+									metadata: { isInPaint: inpaintImage },
+									stepStatus: { ocr: false },
+									stepResult: { ocr: null },
+								})
+								.returning()
+								.then((res) => res[0]);
+						}
+					} else {
+						// Create new task
+						task = await db
+							.insert(table.taskTable)
+							.values({
+								status: "pending",
+								chapterPageId: pageId,
+								chapterPageSubtitlesId: subtitle!.id,
+								metadata: { isInPaint: inpaintImage },
+								stepStatus: { ocr: false },
+								stepResult: { ocr: null },
+							})
+							.returning()
+							.then((res) => res[0]);
+					}
+
+					return ctx.status(200, {
+						success: true,
+						message: "Task added to queue successfully",
+						data: task!,
+						timestamp: Date.now(),
+					});
+				},
+				{
+					detail: {
+						description: "add page to queue that allow ai worker can working",
+					},
+					body: Type.Object({
+						inpaintImage: t.Boolean(),
+					}),
+					response: {
+						200: baseResponseSchema(Type.Object(dbSchemaTypes.taskTable)),
+						403: errorResponseSchema,
+						404: errorResponseSchema,
+						409: errorResponseSchema,
 						500: errorResponseSchema,
 					},
 				},

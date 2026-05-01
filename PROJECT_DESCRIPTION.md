@@ -28,6 +28,12 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - **Logging**: Pino logger with caller tracking
 - **API Documentation**: OpenAPI/Swagger via `@elysiajs/openapi`
 
+### Database Schema
+- All comic-related entities (comics, chapters, chapterPages, chapterPageSubtitles) require an `authorId` field referencing the profile table.
+- Profile table stores user profile information including username, roles, and system flags.
+- For system-generated or automated actions, use the system user ID provided by `backend/src/utils/system-user.ts` to avoid foreign key constraint errors.
+- User table is used only for authentication; profile data contains user information and roles.
+
 ### Frontend Stack
 - **Framework**: Next.js 16 (App Router) with server-side API routes for proxying
 - **Styling**: Tailwind CSS v4 with Dracula theme (dark purple/cyan/pink palette)
@@ -48,6 +54,7 @@ This proxy hides the actual backend host from the browser, allows changing backe
 #### Server Layer
 - `backend/src/index.ts` - Elysia app setup with CORS, OpenAPI, and error handlers
 - `backend/src/utils/logger.ts` - Pino-based logger with file/line caller tracking
+- `backend/src/utils/system-user.ts` - Utility functions for managing the system user account. Provides `getOrCreateSystemUser()` to ensure a system user and profile exist in the database for automated actions, and `getSystemUserId()` and `getSystemProfileId()` to retrieve their IDs. Used when authorId is required for system-generated entities (comics, chapters, etc.) to avoid relation errors.
 - `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, cursorPaginatedResponse, errorResponse)
 - `backend/src/routes/comic.ts` - Comic CRUD routes with cursor-based pagination and file upload support. Updated to use multipart/form-data for both POST and PUT endpoints, with proper handling of categories and genres as arrays.
 - `backend/src/routes/chapters.ts` - Chapter CRUD routes for comics.
@@ -191,6 +198,58 @@ The `speard.ts` utility bridges Drizzle and TypeBox for API contract validation.
 - **Email verification**: Flow not yet wired up
 - **Password reset**: Not implemented
 - **Advanced RBAC UI**: Role editor, permission assignment interface
+- **AI Worker System**: OCR and image inpainting processing for chapter pages
+
+### AI Worker Queue System
+The platform includes an AI-powered processing system for comic pages, handling OCR (text extraction) and optional image inpainting.
+
+#### Database Schema
+- **Table**: `worker_queue`
+- **Fields**:
+  - `id` (serial, PK)
+  - `status` (enum: "claim", "pending", "failed", "complete")
+  - `chapterPageId` (serial, not null) — references `chapter_pages.id`
+  - `chapterPageSubtitlesId` (serial, not null) — references `chapter_page_subtitle.id`
+  - `metadata` (jsonb) — stores processing options like `{ isInPaint: boolean }`
+  - `stepStatus` (jsonb) — tracks processing steps like `{ ocr: boolean }`
+  - `stepResult` (jsonb) — stores results like `{ ocr: any }`
+  - `errorLog` (text) — error messages if processing fails
+  - `createdAt`, `updatedAt` (timestamps)
+
+#### Queue Management API
+##### POST `/chapter-images/add-queue/:id` — Add Chapter Page to AI Processing Queue
+- **Auth**: Required (`userAuth`)
+- **Content-Type**: `application/json`
+- **Description**: Adds a chapter page to the AI processing queue for OCR and optional inpainting. The system automatically creates a subtitle record if one doesn't exist, using the system user account. Handles different queue states:
+  - **Pending**: Updates the existing task with new metadata
+  - **Complete/Failed**: Creates a new task
+  - **Claim** (processing): Returns 409 error
+- **Request Body**:
+  ```json
+  {
+    "inpaintImage": true
+  }
+  ```
+- **Response**:
+  - `200`: Task added/updated successfully, returns task object
+  - `403`: Forbidden (user is not the chapter author)
+  - `404`: Chapter page not found
+  - `409`: Page is currently being processed
+  - `500`: Internal server error
+
+#### Processing Flow
+1. **Queue Addition**: User adds page to queue via API
+2. **Subtitle Creation**: System ensures `chapter_page_subtitle` exists (creates with system user if needed)
+3. **Task Creation/Update**: Creates or updates `worker_queue` entry
+4. **AI Worker Processing**: Background worker claims tasks and processes OCR/inpainting
+5. **Result Storage**: Updates subtitle with extracted text and processed images
+
+#### Files & Responsibilities
+- **`backend/src/routes/chapterImage.ts`**: `POST /add-queue/:id` endpoint for queue management
+- **`backend/src/services/AiWorker.ts`**: Background worker service for processing tasks
+- **`backend/src/utils/system-user.ts`**: Provides system user for automated subtitle creation
+- **`backend/src/database/schema/queue.ts`**: Queue table schema definition
+- **`frontend/app/(protected)/comics/[comicId]/chapters/[chapterId]/edit/page.tsx`**: Chapter edit page with AI queue functionality. Each chapter page displays an "AI Process" button that adds the page to the processing queue. Shows loading states and tracks queued pages to prevent duplicate submissions.
 
 ### Landing Page Future Enhancements
 - Pagination / lazy loading for large comic collections

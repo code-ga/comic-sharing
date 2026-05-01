@@ -42,6 +42,7 @@ export default function EditChapterPage({
 	const [startPosition, setStartPosition] = useState("0");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isUploadExpanded, setIsUploadExpanded] = useState(false);
+	const [queuedPages, setQueuedPages] = useState<Set<number>>(new Set());
 
 	const { data: chapterData, isLoading: isChapterLoading } = useQuery({
 		queryKey: ["chapter", chapterId],
@@ -154,6 +155,33 @@ export default function EditChapterPage({
 		},
 	});
 
+	const addToQueueMutation = useMutation({
+		mutationFn: async ({
+			pageId,
+			inpaintImage,
+		}: {
+			pageId: number;
+			inpaintImage: boolean;
+		}) => {
+			const { data, error } = await api.api["chapter-images"]
+				["add-queue"]({
+					id: pageId,
+				})
+				.post({
+					inpaintImage,
+				});
+			if (error) throw new Error(getEdenErrorMessage(error));
+			return data;
+		},
+		onSuccess: (_, { pageId }) => {
+			setError(null);
+			setQueuedPages((prev) => new Set(prev).add(pageId));
+		},
+		onError: (err: any) => {
+			setError(err.message);
+		},
+	});
+
 	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (e.target.files) {
 			setSelectedFiles(Array.from(e.target.files));
@@ -180,7 +208,11 @@ export default function EditChapterPage({
 		updateMutation.mutate();
 	};
 
-	const chapterPages: ChapterPage[] = chapterPagesData?.data || [];
+	const handleAddToQueue = (pageId: number, inpaintImage: boolean = false) => {
+		addToQueueMutation.mutate({ pageId, inpaintImage });
+	};
+
+	const chapterPages = chapterPagesData?.data || [];
 
 	if (isChapterLoading) {
 		return (
@@ -466,7 +498,6 @@ export default function EditChapterPage({
 												<img
 													src={page.imageUrl}
 													alt={`Page ${page.pageNumber + 1}`}
-													fill
 													className="object-cover group-hover:scale-105 transition-transform duration-300"
 												/>
 											</div>
@@ -474,16 +505,78 @@ export default function EditChapterPage({
 												<p className="text-white text-sm font-medium mb-3">
 													Page {page.pageNumber + 1}
 												</p>
-												<button
-													type="button"
-													onClick={() => deletePageMutation.mutate(page.id)}
-													disabled={deletePageMutation.isPending}
-													className="w-full px-3 py-2 bg-destructive/80 hover:bg-destructive text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-												>
-													{deletePageMutation.isPending
-														? "Deleting..."
-														: "Delete"}
-												</button>
+												<div className="flex gap-2">
+													<button
+														type="button"
+														onClick={() => handleAddToQueue(page.id)}
+														disabled={
+															addToQueueMutation.isPending ||
+															queuedPages.has(page.id)
+														}
+														className="flex-1 px-3 py-2 bg-primary/80 hover:bg-primary text-primary-foreground text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+													>
+														{queuedPages.has(page.id) ? (
+															"Queued"
+														) : addToQueueMutation.isPending ? (
+															<span className="flex items-center justify-center gap-1">
+																<svg
+																	className="w-3 h-3 animate-spin"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																>
+																	<circle
+																		className="opacity-25"
+																		cx="12"
+																		cy="12"
+																		r="10"
+																		stroke="currentColor"
+																		strokeWidth="4"
+																	></circle>
+																	<path
+																		className="opacity-75"
+																		fill="currentColor"
+																		d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																	></path>
+																</svg>
+																Adding...
+															</span>
+														) : (
+															"AI Process"
+														)}
+													</button>
+													<button
+														type="button"
+														onClick={() => deletePageMutation.mutate(page.id)}
+														disabled={deletePageMutation.isPending}
+														className="px-3 py-2 bg-destructive/80 hover:bg-destructive text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+													>
+														{deletePageMutation.isPending ? (
+															<span className="flex items-center justify-center">
+																<svg
+																	className="w-3 h-3 animate-spin"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																>
+																	<circle
+																		className="opacity-25"
+																		cx="12"
+																		cy="12"
+																		r="10"
+																		stroke="currentColor"
+																		strokeWidth="4"
+																	></circle>
+																	<path
+																		className="opacity-75"
+																		fill="currentColor"
+																		d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+																	></path>
+																</svg>
+															</span>
+														) : (
+															"Delete"
+														)}
+													</button>
+												</div>
 											</div>
 										</div>
 									))}
