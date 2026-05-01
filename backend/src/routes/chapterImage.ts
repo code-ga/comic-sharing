@@ -90,8 +90,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 				async (ctx) => {
 					const profile = ctx.profile;
 					// const user = ctx.user;
-					const { chapterId, content, images, startPostion } = ctx.body;
+					const {
+						chapterId: chapterIdString,
+						content,
+						images,
+						startPostion: startPostionString,
+					} = ctx.body;
 					const imageUrls: string[] = await uploadImages(images);
+					const chapterId = Number(chapterIdString);
+					const startPostion = Number(startPostionString);
 					// Check if chapter exists and belongs to the user
 					const chapter = await db.query.chapters.findFirst({
 						where: {
@@ -177,7 +184,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 					return ctx.status(201, {
 						success: true,
 						message: "Chapter page created successfully",
-						data: newChapterPage[0],
+						data: newChapterPage,
 						timestamp: Date.now(),
 					});
 				},
@@ -186,13 +193,15 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						description: "Add a new chapter page",
 					},
 					body: Type.Object({
-						chapterId: Type.Number(),
-						images: t.Files({ type: "image/*", minItems: 20 }),
+						chapterId: Type.String(),
+						images: t.Files({ type: "image/*" }),
 						content: Type.String(),
-						startPostion: Type.Number(),
+						startPostion: Type.String({ default: "0" }),
 					}),
 					response: {
-						201: baseResponseSchema(Type.Object(dbSchemaTypes.chapterPages)),
+						201: baseResponseSchema(
+							Type.Array(Type.Object(dbSchemaTypes.chapterPages)),
+						),
 						401: errorResponseSchema,
 						403: errorResponseSchema,
 						404: errorResponseSchema,

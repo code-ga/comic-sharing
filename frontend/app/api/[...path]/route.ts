@@ -1,18 +1,18 @@
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_TARGET_URL = process.env.BACKEND_TARGET_URL;
 
 const HOP_BY_HOP_HEADERS = new Set([
-	'connection',
-	'keep-alive',
-	'proxy-authenticate',
-	'proxy-authorization',
-	'te',
-	'trailers',
-	'transfer-encoding',
-	'upgrade',
+	"connection",
+	"keep-alive",
+	"proxy-authenticate",
+	"proxy-authorization",
+	"te",
+	"trailers",
+	"transfer-encoding",
+	"upgrade",
 ]);
 
 export async function GET(req: NextRequest) {
@@ -45,15 +45,15 @@ export async function OPTIONS(req: NextRequest) {
 
 async function handleRequest(req: NextRequest): Promise<Response> {
 	if (!BACKEND_TARGET_URL) {
-		console.error('BACKEND_TARGET_URL is not set');
+		console.error("BACKEND_TARGET_URL is not set");
 		return NextResponse.json(
-			{ error: 'Backend service is misconfigured' },
-			{ status: 502 }
+			{ error: "Backend service is misconfigured" },
+			{ status: 502 },
 		);
 	}
 
 	const { pathname } = req.nextUrl;
-	const proxyPath = pathname.replace(/^\/api/, '');
+	const proxyPath = pathname.replace(/^\/api/, "");
 	const url = new URL(proxyPath + pathname.search, BACKEND_TARGET_URL);
 
 	const headers = new Headers();
@@ -66,34 +66,42 @@ async function handleRequest(req: NextRequest): Promise<Response> {
 	}
 
 	let body: BodyInit | null = null;
-	const contentLength = req.headers.get('content-length');
+	const contentLength = req.headers.get("content-length");
 	if (contentLength && Number(contentLength) > 0) {
 		body = req.body;
 	}
 
-		try {
-			const res = await fetch(url.toString(), {
-				method: req.method,
-				headers,
+	try {
+		const fetchOptions: RequestInit = {
+			method: req.method,
+			headers,
+			redirect: "manual",
+		};
+
+		if (body) {
+			Object.assign(fetchOptions, {
 				body,
-				redirect: 'manual',
+				duplex: "half",
 			});
-
-			const backendHeaders = new Headers();
-			for (const [key, value] of res.headers.entries()) {
-				backendHeaders.append(key, value);
-			}
-
-			const response = new Response(res.body, {
-				status: res.status,
-				statusText: res.statusText,
-				headers: backendHeaders,
-			});
-
-			return response;
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			console.error('Proxy fetch failed:', message);
-			return NextResponse.json({ error: 'Bad gateway' }, { status: 502 });
 		}
+
+		const res = await fetch(url.toString(), fetchOptions);
+
+		const backendHeaders = new Headers();
+		for (const [key, value] of res.headers.entries()) {
+			backendHeaders.append(key, value);
+		}
+
+		const response = new Response(res.body, {
+			status: res.status,
+			statusText: res.statusText,
+			headers: backendHeaders,
+		});
+
+		return response;
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		console.error("Proxy fetch failed:", message);
+		return NextResponse.json({ error: "Bad gateway" }, { status: 502 });
+	}
 }

@@ -113,8 +113,12 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 	}>(),
 	inpaintedImage: text(),
 	content: text(),
-	
+
 	createdAt: timestamp("created_at").defaultNow().notNull(),
+	updatedAt: timestamp("updated_at")
+		.defaultNow()
+		.$onUpdate(() => /* @__PURE__ */ new Date())
+		.notNull(),
 });
 
 export type ChapterPageSubtitle = InferSelectModel<typeof chapterPageSubtitles>;

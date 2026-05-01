@@ -15,16 +15,24 @@ interface ReadChapterPageProps {
 	}>;
 }
 
-export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPageProps) {
+export default function ReadChapterPage({
+	params: paramsPromise,
+}: ReadChapterPageProps) {
 	const params = use(paramsPromise);
 	const comicId = params.comicId;
 	const chapterId = params.chapterId;
 	const router = useRouter();
 	// Fetch chapter data with pages
-	const { data: chapterData, isLoading, error } = useQuery({
+	const {
+		data: chapterData,
+		isLoading,
+		error,
+	} = useQuery({
 		queryKey: ["chapter", chapterId],
 		queryFn: async () => {
-			const { data, error } = await api.api.chapters({ id: Number(chapterId) }).get();
+			const { data, error } = await api.api
+				.chapters({ id: Number(chapterId) })
+				.get();
 			if (error) throw new Error(getEdenErrorMessage(error));
 			return data.data;
 		},
@@ -55,9 +63,12 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 	const chapters = chaptersData || [];
 
 	// Find current chapter index
-	const currentIndex = chapters.findIndex((c: { id: number }) => c.id === Number(chapterId));
+	const currentIndex = chapters.findIndex(
+		(c: { id: number }) => c.id === Number(chapterId),
+	);
 	const prevChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null;
-	const nextChapter = currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
+	const nextChapter =
+		currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null;
 
 	if (isLoading) {
 		return (
@@ -74,7 +85,11 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 				<div className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-4">
 					<div className="h-8 bg-muted/50 rounded-lg w-3/4 animate-pulse" />
 					{[1, 2, 3, 4, 5].map((i) => (
-						<div key={i} className="w-full bg-muted/50 rounded-lg animate-pulse" style={{ aspectRatio: "3/4" }} />
+						<div
+							key={i}
+							className="w-full bg-muted/50 rounded-lg animate-pulse"
+							style={{ aspectRatio: "3/4" }}
+						/>
 					))}
 				</div>
 			</div>
@@ -85,16 +100,30 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="glass rounded-2xl border border-border/50 p-8 text-center max-w-md">
-					<h2 className="text-2xl font-bold text-foreground mb-2">Chapter Not Found</h2>
+					<h2 className="text-2xl font-bold text-foreground mb-2">
+						Chapter Not Found
+					</h2>
 					<p className="text-muted-foreground mb-6">
-						{error ? getEdenErrorMessage(error) : "This chapter doesn't exist or has been removed."}
+						{error
+							? getEdenErrorMessage(error)
+							: "This chapter doesn't exist or has been removed."}
 					</p>
 					<Link
 						href={`/comics/${comicId}`}
 						className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/80 transition-colors"
 					>
-						<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+						<svg
+							className="w-4 h-4"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M10 19l-7-7m0 0l7-7m-7 7h18"
+							/>
 						</svg>
 						Back to Comic
 					</Link>
@@ -104,7 +133,9 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 	}
 
 	// Sort pages by page number
-	const sortedPages = [...chapter.pages].sort((a, b) => a.pageNumber - b.pageNumber);
+	const sortedPages = [...chapter.pages].sort(
+		(a, b) => a.pageNumber - b.pageNumber,
+	);
 
 	return (
 		<div className="min-h-screen flex flex-col bg-background">
@@ -116,8 +147,18 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 							href={`/comics/${comicId}`}
 							className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
 						>
-							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+							<svg
+								className="w-4 h-4"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M15 19l-7-7 7-7"
+								/>
 							</svg>
 							{comic.title}
 						</Link>
@@ -136,9 +177,7 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 						<h1 className="text-2xl font-bold text-foreground">
 							Chapter {chapter.index}: {chapter.title}
 						</h1>
-						<p className="text-sm text-muted-foreground">
-							{comic.title}
-						</p>
+						<p className="text-sm text-muted-foreground">{comic.title}</p>
 					</div>
 
 					{/* Reading Mode Toggle (Bilingual/Original) */}
@@ -147,7 +186,10 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 							<button className="px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg">
 								Original
 							</button>
-							<button className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors" disabled>
+							<button
+								className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg transition-colors"
+								disabled
+							>
 								Translation
 							</button>
 						</div>
@@ -160,7 +202,7 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 								key={page.id}
 								className="relative bg-muted/20 rounded-lg overflow-hidden border border-border/50"
 							>
-								<Image
+								<img
 									src={page.imageUrl}
 									alt={`Page ${page.pageNumber}`}
 									width={800}
@@ -179,7 +221,9 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 					{/* No Pages Message */}
 					{(!sortedPages || sortedPages.length === 0) && (
 						<div className="glass rounded-xl border border-border/50 p-8 text-center">
-							<p className="text-muted-foreground">No pages available for this chapter.</p>
+							<p className="text-muted-foreground">
+								No pages available for this chapter.
+							</p>
 						</div>
 					)}
 				</div>
@@ -224,15 +268,22 @@ export default function ReadChapterPage({ params: paramsPromise }: ReadChapterPa
 							<select
 								value={chapter.id}
 								onChange={(e) => {
-									const targetChapter = chapters.find((c: { id: number }) => c.id === Number(e.target.value));
+									const targetChapter = chapters.find(
+										(c: { id: number }) => c.id === Number(e.target.value),
+									);
 									if (targetChapter) {
-										router.push(`/comics/${comicId}/chapters/${targetChapter.id}/read`);
+										router.push(
+											`/comics/${comicId}/chapters/${targetChapter.id}/read`,
+										);
 									}
 								}}
 								className="px-3 py-2 bg-muted/50 rounded-lg text-sm border border-border/50 focus:outline-none focus:ring-2 focus:ring-primary"
 							>
 								{chapters
-									.sort((a: { index: number }, b: { index: number }) => a.index - b.index)
+									.sort(
+										(a: { index: number }, b: { index: number }) =>
+											a.index - b.index,
+									)
 									.map((c: { id: number; index: number; title: string }) => (
 										<option key={c.id} value={c.id}>
 											Chapter {c.index}: {c.title}
