@@ -7,13 +7,9 @@ import {
 	timestamp,
 } from "drizzle-orm/pg-core";
 import { OCRPageOutput } from "../../types";
+import { taskStatusEnum } from "./enums";
 
-export const taskStatusEnum = pgEnum("queue_status", [
-	"claim",
-	"pending",
-	"failed",
-	"complete",
-]);
+
 
 export const taskTable = pgTable("worker_queue", {
 	id: serial("id").primaryKey().unique(),
