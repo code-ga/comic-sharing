@@ -231,14 +231,14 @@ export default function ReadChapterPage({
 												OCR for page {page.pageNumber}
 											</h3>
 											<p className="text-xs text-muted-foreground">
-												{pageSubtitle?.boxs?.length
-													? `${pageSubtitle.boxs.length} boxes detected`
+												{pageSubtitle?.boxs?.boxs.length
+													? `${pageSubtitle.boxs.boxs.length} boxes detected`
 													: "No OCR available yet."}
 											</p>
 										</div>
-										{pageSubtitle?.boxs?.length ? (
+										{pageSubtitle?.boxs?.boxs.length ? (
 											<span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-												{pageSubtitle.boxs.length} boxes
+												{pageSubtitle.boxs.boxs.length} boxes
 											</span>
 										) : null}
 									</div>
