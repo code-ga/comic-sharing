@@ -61,7 +61,7 @@ export const auth = betterAuth({
 		defaultCookieAttributes: cookieOptions,
 		crossSubDomainCookies: {
 			enabled: true,
-			domain: new URL(process.env.BASE_URL || "http://localhost:3001/api/auth").hostname,
+			domain: `.${new URL(process.env.BASE_URL || "http://localhost:3001/api/auth").hostname}`,
 		},
 	},
 });
