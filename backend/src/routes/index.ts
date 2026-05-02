@@ -1,11 +1,12 @@
 import Elysia from "elysia";
+import { authRouter } from "./auth";
+import { chapterImagesRoute } from "./chapterImage";
+import { chaptersRoute } from "./chapters";
+import { comicsRoute } from "./comic";
 import { healthRoutes } from "./health";
 import { profileRouter } from "./profile";
 import { roleRoute } from "./role";
-import { authRouter } from "./auth";
-import { comicsRoute } from "./comic";
-import { chaptersRoute } from "./chapters";
-import { chapterImagesRoute } from "./chapterImage";
+import { queueRoute } from "./queue";
 
 const apiRouter = new Elysia({ prefix: "/api" })
 	.use(healthRoutes)
@@ -14,6 +15,7 @@ const apiRouter = new Elysia({ prefix: "/api" })
 	.use(comicsRoute)
 	.use(chaptersRoute)
 	.use(chapterImagesRoute)
-	.use(roleRoute);
+	.use(roleRoute)
+	.use(queueRoute);
 
 export { apiRouter };

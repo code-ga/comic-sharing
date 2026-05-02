@@ -1,13 +1,13 @@
 import { Type } from "@sinclair/typebox";
 import { eq } from "drizzle-orm";
 import Elysia from "elysia";
+import { resolveUserPermissions } from "../constants/permissions";
 import { db } from "../database";
 import { table as schema } from "../database/schema";
 import { dbSchemaTypes, type SchemaStatic } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { appStateService } from "../services/AppState";
 import { baseResponseSchema, errorResponseSchema } from "../types";
-import { resolveUserPermissions } from "../constants/permissions";
 import { getInitialRoleIds } from "../utils/role";
 
 export const profileRouter = new Elysia({

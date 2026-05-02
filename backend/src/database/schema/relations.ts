@@ -1,8 +1,8 @@
-import * as auth from "./auth";
+import { defineRelations } from "drizzle-orm";
 import * as app from "./app";
+import * as auth from "./auth";
 import * as comic from "./comic";
 import * as queue from "./queue";
-import { defineRelations } from "drizzle-orm";
 
 export const table = {
 	...auth,

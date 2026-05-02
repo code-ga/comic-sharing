@@ -21,7 +21,7 @@ export async function uploadImages(images: File[]): Promise<string[]> {
 export async function removeImage(images: string[]) {
 	const results = [];
 	for (const url of images) {
-		const match = url.match(/https:\/\/cdn\.hackclub\.com\/([^\/]+)\/[^\/]+/);
+		const match = url.match(/https:\/\/cdn\.hackclub\.com\/([^/]+)\/[^/]+/);
 		if (match) {
 			const id = match[1];
 			const response = await fetch(

@@ -2,9 +2,9 @@ import { Type } from "@sinclair/typebox";
 import { eq, inArray } from "drizzle-orm";
 import { Elysia } from "elysia";
 import {
+	getPermissionsGrouped,
 	type Permission,
 	PermissionGroupSchema,
-	getPermissionsGrouped,
 } from "../constants/permissions";
 import { db } from "../database";
 import { table as schema } from "../database/schema";

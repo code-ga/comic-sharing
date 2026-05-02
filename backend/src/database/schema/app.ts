@@ -1,9 +1,4 @@
-import {
-  jsonb,
-  pgTable,
-  serial,
-  timestamp
-} from "drizzle-orm/pg-core";
+import { jsonb, pgTable, serial, timestamp } from "drizzle-orm/pg-core";
 export interface AppState {
 	createNewAdmin: boolean;
 }
@@ -19,4 +14,3 @@ export const AppState = pgTable("app_state", {
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull(),
 });
-

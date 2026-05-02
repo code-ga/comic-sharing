@@ -1,13 +1,13 @@
 import cors from "@elysiajs/cors";
 import openapi from "@elysiajs/openapi";
-import { AnyElysia, Elysia } from "elysia";
+import { type AnyElysia, Elysia } from "elysia";
+import { getPermissionsGrouped } from "./constants/permissions";
+import { OpenAPI } from "./libs/openApi";
+import { loggerMiddleware } from "./middleware/logger";
+import { apiRouter } from "./routes";
+import { AiWorkerSerivce } from "./services/AiWorker";
 import { logger } from "./utils/logger";
 import { generateSeedRoles } from "./utils/role";
-import { getPermissionsGrouped } from "./constants/permissions";
-import { apiRouter } from "./routes";
-import { loggerMiddleware } from "./middleware/logger";
-import { OpenAPI } from "./libs/openApi";
-import { AiWorkerSerivce } from "./services/AiWorker";
 
 await generateSeedRoles();
 
@@ -81,11 +81,11 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 export type App = typeof app;
-export * as databaseTypes from "./database/types";
-export * as requestTypes from "./types";
 export {
 	type Permission,
 	type PermissionFilter,
 	PermissionGroupSchema,
 	RESOURCE_DEFINITIONS,
 } from "./constants/permissions";
+export * as databaseTypes from "./database/types";
+export * as requestTypes from "./types";

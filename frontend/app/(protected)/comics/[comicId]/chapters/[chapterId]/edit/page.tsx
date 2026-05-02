@@ -66,6 +66,19 @@ export default function EditChapterPage({
 		},
 	});
 
+	const { data: chapterTasksData } = useQuery({
+		queryKey: ["chapterTasks", chapterId],
+		queryFn: async () => {
+			const { data, error } = await api.api.queue
+				.chapter({ chapterId: Number(chapterId) })
+				.get();
+			if (error) throw new Error(getEdenErrorMessage(error));
+			return data;
+		},
+		refetchInterval: 3000,
+	});
+	const chapterTasks = (chapterTasksData?.data as any[]) || [];
+
 	useEffect(() => {
 		if (chapterData?.data) {
 			const chapter = chapterData.data;
@@ -232,8 +245,8 @@ export default function EditChapterPage({
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 				{/* Chapter Info Section */}
-				<div className="lg:col-span-1">
-					<div className="glass rounded-2xl border border-border/50 overflow-hidden sticky top-6">
+				<div className="lg:col-span-1 space-y-6">
+					<div className="glass rounded-2xl border border-border/50 overflow-hidden top-6">
 						<div className="p-6 border-b border-border/50 bg-muted/20">
 							<h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
 								Chapter Info
@@ -302,6 +315,53 @@ export default function EditChapterPage({
 								</button>
 							</div>
 						</form>
+					</div>
+
+					{/* Task Status Panel */}
+					<div className="glass rounded-2xl border border-border/50 overflow-hidden">
+						<div className="p-6 border-b border-border/50 bg-muted/20">
+							<h2 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+								AI Task Status
+							</h2>
+						</div>
+						<div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+							{chapterTasks.length === 0 ? (
+								<p className="text-sm text-muted-foreground text-center py-4">
+									No AI tasks running.
+								</p>
+							) : (
+								chapterTasks.map((task: any) => (
+									<div
+										key={task.id}
+										className="p-3 bg-muted/30 rounded-xl border border-border/50"
+									>
+										<div className="flex items-center justify-between mb-2">
+											<span className="text-sm font-semibold capitalize">
+												{task.taskType} Task
+											</span>
+											<span
+												className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
+													task.status === "completed"
+														? "bg-green-500/10 text-green-500 border-green-500/20"
+														: task.status === "failed"
+															? "bg-red-500/10 text-red-500 border-red-500/20"
+															: task.status === "claimed"
+																? "bg-blue-500/10 text-blue-500 border-blue-500/20"
+																: "bg-orange-500/10 text-orange-500 border-orange-500/20"
+												}`}
+											>
+												{task.status}
+											</span>
+										</div>
+										<p className="text-xs text-muted-foreground">
+											{task.taskType === "chapter"
+												? "Summarizing chapter..."
+												: `Processing Page ${(task.targetInfo?.pageNumber ?? -1) + 1}`}
+										</p>
+									</div>
+								))
+							)}
+						</div>
 					</div>
 				</div>
 

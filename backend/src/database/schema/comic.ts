@@ -1,12 +1,12 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import {
+	index,
+	integer,
+	jsonb,
 	pgTable,
 	serial,
 	text,
 	timestamp,
-	jsonb,
-	index,
-	integer,
 } from "drizzle-orm/pg-core";
 
 export const comics = pgTable(
@@ -55,6 +55,21 @@ export const chapters = pgTable("chapter", {
 
 	pageIds: text("page_ids").notNull().array().default([]),
 
+	summary: text("summary"),
+	majorEvents: text("major_events").array(),
+	characters: text("characters").array(),
+	themes: text("themes").array(),
+	emotionalArc: text("emotional_arc").array(),
+	chapterType: text("chapter_type").$type<
+		| "action"
+		| "dialogue"
+		| "exposition"
+		| "romance"
+		| "comedy"
+		| "horror"
+		| "mixed"
+	>(),
+
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -102,7 +117,13 @@ export type SubtitleBox = {
 	width: number;
 	height: number;
 	text: string;
-	translatedText: { [key: string]: string };
+	boxType:
+		| "dialogue"
+		| "narration"
+		| "sound_effect"
+		| "title"
+		| "background_text";
+	order: number;
 };
 
 export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
@@ -113,12 +134,26 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 
 	authorId: text("author_id").notNull(),
 
+	// ocr result
 	boxs: jsonb("box")
 		.notNull()
 		.$type<{ boxs: SubtitleBox[] }>()
 		.default({ boxs: [] }),
-	inpaintedImage: text(),
 	content: text(),
+	readingDirection: text().$type<"ltr" | "rtl" | "vertical">(),
+
+	// summary result
+	summary: text(),
+	characters: text().array(),
+	setting: text(),
+	objects: text().array(),
+	emotions: text().array(),
+	scene_type: text(),
+	action_level: text().$type<"low" | "medium" | "high">(),
+	important_events: text().array(),
+	content_flags: text().array(),
+
+	inPaintedImage: text(),
 
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")

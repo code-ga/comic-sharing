@@ -11,10 +11,6 @@ const cookieOptions: CookieOptions = {
 	partitioned: true,
 };
 
-console.log(
-	new URL(process.env.BASE_URL || "http://localhost:3001/api/auth").hostname,
-);
-
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",

@@ -1,8 +1,8 @@
 import Elysia from "elysia";
 import {
 	evaluatePermissionFilter,
-	resolveUserPermissions,
 	type PermissionFilter,
+	resolveUserPermissions,
 } from "../constants/permissions";
 import { db } from "../database";
 import { auth } from "../libs/auth.config";

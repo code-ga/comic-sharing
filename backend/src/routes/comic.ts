@@ -5,9 +5,9 @@ import { db } from "../database";
 import { table as schema } from "../database/schema";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
-import { baseResponseSchema, errorResponseSchema } from "../types";
 import { appStateService } from "../services/AppState";
-import { uploadImages, removeImage } from "../utils/files";
+import { baseResponseSchema, errorResponseSchema } from "../types";
+import { removeImage, uploadImages } from "../utils/files";
 
 export const comicsRoute = new Elysia({ prefix: "/comics" })
 	.use(authenticationMiddleware)

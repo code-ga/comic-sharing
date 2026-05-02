@@ -247,12 +247,14 @@ All operations maintain array consistency within transactions, ensuring parent r
 - **Table**: `worker_queue`
 - **Fields**:
   - `id` (serial, PK)
-  - `status` (enum: "claim", "pending", "failed", "complete")
-  - `chapterPageId` (serial, not null) — references `chapter_pages.id`
-  - `chapterPageSubtitlesId` (serial, not null) — references `chapter_page_subtitle.id`
+  - `taskType` (enum: "page" | "chapter") — differentiates between page OCR/metadata tasks and chapter summary tasks.
+  - `status` (enum: "claim", "pending", "failed", "completed")
+  - `chapterId` (integer, nullable) — references `chapter.id`, used for chapter tasks.
+  - `chapterPageId` (serial, not null) — references `chapter_pages.id`, used for page tasks.
+  - `chapterPageSubtitlesId` (serial, not null) — references `chapter_page_subtitle.id`, used for page tasks.
   - `metadata` (jsonb) — stores processing options like `{ isInPaint: boolean }`
-  - `stepStatus` (jsonb) — tracks processing steps like `{ ocr: boolean }`
-  - `stepResult` (jsonb) — stores results like `{ ocr: any }`
+  - `stepStatus` (jsonb) — tracks processing steps like `{ ocr: boolean, metadataExtraction: boolean, chapterSummary?: boolean }`
+  - `stepResult` (jsonb) — stores results like `{ ocr: any, metadataExtraction: any, chapterSummary?: any }`
   - `errorLog` (text) — error messages if processing fails
   - `createdAt`, `updatedAt` (timestamps)
 
@@ -282,11 +284,21 @@ All operations maintain array consistency within transactions, ensuring parent r
 2. **Subtitle Creation**: System ensures `chapter_page_subtitle` exists (creates with system user if needed)
 3. **Task Creation/Update**: Creates or updates `worker_queue` entry
 4. **AI Worker Processing**: Background worker claims tasks and processes OCR/inpainting.
-   - `backend/src/services/AiWorker.ts` currently runs OCR on pending tasks and updates the subtitle record.
-   - The worker marks a task `claim` while processing, then `complete` when OCR is persisted.
-5. **Result Storage**: Updates `chapter_page_subtitle` with extracted boxes and text.
+   - `backend/src/services/AiWorker.ts` currently runs OCR and metadata extraction on pending tasks.
+   - **OCR Fallback**: The primary OCR model is `baidu/qianfan-ocr-fast:free`. If this fails, the system automatically falls back to `google/gemini-1.5-flash:free`.
+   - **Type Safety**: The worker uses explicitly typed `ModelMessage[]` for AI requests to prevent TypeScript type widening (TS2345) when using intermediate request configurations.
+   - The worker marks a task `claim` while processing, then `completed` when the metadata extraction is persisted.
+5. **Result Storage**: Updates `chapter_page_subtitle` with extracted boxes, text, and page summary data.
    - `boxs` stores an array of OCR text blocks and bounding boxes.
    - `content` stores the combined extracted text for the page.
+   - Summarization fields (`summary`, `characters`, etc.) store the page metadata.
+    - **Chapter Summary Trigger**: After the task processing loop finishes, the worker evaluates the progress of all affected chapters. It collects all `chapterId`s from page tasks completed in the current cycle and runs the check once for each.
+    - Wait condition: It waits until **every** task for the chapter's pages is finished running (no tasks are `pending` or `claimed`).
+   - 90% Success Condition: If >= 90% of the pages have successfully completed their OCR and metadata extraction, a new task with `taskType = "chapter"` is added to the `worker_queue`.
+   - Duplicate Prevention: The system only skips creating a new chapter task if an existing one is currently `pending` or `claimed`. If existing tasks are `completed` or `failed`, a new one will be created.
+7. **Chapter Summary Task**: The worker processes chapter tasks by gathering all `chapterPageSubtitles` for the chapter.
+   - It sends the chronological sequence of page summaries to `google/gemini-pro-1.5-exp:free` to generate a structured, coherent chapter narrative.
+   - Results (`summary`, `major_events`, `themes`, `characters`, `emotional_arc`, `chapter_type`) are stored directly on the `chapters` table.
 
 #### Files & Responsibilities
 - **`backend/src/routes/chapterImage.ts`**: `POST /add-queue/:id` endpoint for queue management
@@ -528,6 +540,25 @@ Created a layout wrapper for the `/comics` route section to provide consistent n
 1. `frontend/app/comics/[comicId]/page.tsx` - Now rendered inside the comics layout with a back-to-home link above the comic detail card
 2. `frontend/app/comics/[comicId]/chapters/[chapterId]/read/page.tsx` - Now rendered inside the comics layout with back-to-home link above the reader header
 
-**Note on File Path Correction:**
-
+- **Note on File Path Correction**:
 - Previously the PROJECT_DESCRIPTION listed the reading page as `chapters/[chapterId]/page.tsx`; it has been corrected to `chapters/[chapterId]/read/page.tsx` throughout the documentation.
+
+### Logging Cleanup (2026-05-02)
+
+Improved the logging quality in the AI Worker service by removing unnecessary debug output and integrating the standard Pino logger.
+
+- **`backend/src/services/AiWorker.ts`**:
+    - Replaced `console.log` and `console.error` with the `logger` utility.
+    - Removed verbose debug logs that printed entire database objects (tasks, chapters).
+    - Standardized lifecycle and error logging.
+    - Added structured logging for task processing and chapter completion checks.
+
+## Recent Fixes (2026-05-02)
+
+### AI Message Type Widening Fix
+
+Fixed a critical TypeScript error in the AI worker service where messages were losing their literal types.
+
+- **Issue**: Intermediate request configurations caused role strings to widen to `string`.
+- **Fix**: Explicitly typed messages as `ModelMessage[]` and updated imports from `ai` package.
+- **Verification**: Backend typecheck now passes successfully.

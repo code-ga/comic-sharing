@@ -1,37 +1,37 @@
 {
-  "name": "@comic-sharing/backend",
-  "version": "1.0.0",
-  "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "build": "bun run typecheck && bun build src/index.ts --outdir dist",
-    "start": "bun run src/index.ts",
-    "typecheck": "tsc --noEmit",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
-  },
-  "dependencies": {
-    "@elysiajs/cors": "^1.4.2",
-    "@elysiajs/openapi": "^1.4.15",
-    "@openrouter/ai-sdk-provider": "^2.9.0",
-    "@paralleldrive/cuid2": "^3.3.0",
-    "@sinclair/typebox": "catalog:",
-    "ai": "^6.0.172",
-    "better-auth": "^1.6.9",
-    "dotenv": "^17.4.2",
-    "drizzle-kit": "^1.0.0-beta.22",
-    "drizzle-orm": "^1.0.0-beta.22",
-    "drizzle-typebox": "^1.0.0-beta.14-a36c63d",
-    "elysia": "catalog:",
-    "pg": "^8.20.0",
-    "pino": "^10.3.1",
-    "zod": "^4.4.1"
-  },
-  "devDependencies": {
-    "@electric-sql/pglite": "^0.4.5",
-    "bun-types": "latest"
-  },
-  "module": "src/index.ts",
-  "types": "src/index.ts",
-  "main": "src/index.ts"
+	"name": "@comic-sharing/backend",
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "bun --watch src/index.ts",
+		"build": "bun run typecheck && bun build src/index.ts --outdir dist",
+		"start": "bun run src/index.ts",
+		"typecheck": "tsc --noEmit",
+		"db:migrate": "drizzle-kit migrate",
+		"db:push": "drizzle-kit push",
+		"db:studio": "drizzle-kit studio"
+	},
+	"dependencies": {
+		"@elysiajs/cors": "^1.4.2",
+		"@elysiajs/openapi": "^1.4.15",
+		"@openrouter/ai-sdk-provider": "^2.9.0",
+		"@paralleldrive/cuid2": "^3.3.0",
+		"@sinclair/typebox": "catalog:",
+		"ai": "^6.0.172",
+		"better-auth": "^1.6.9",
+		"dotenv": "^17.4.2",
+		"drizzle-kit": "^1.0.0-beta.22",
+		"drizzle-orm": "^1.0.0-beta.22",
+		"drizzle-typebox": "^1.0.0-beta.14-a36c63d",
+		"elysia": "catalog:",
+		"pg": "^8.20.0",
+		"pino": "^10.3.1",
+		"zod": "^4.4.1"
+	},
+	"devDependencies": {
+		"@electric-sql/pglite": "^0.4.5",
+		"bun-types": "latest"
+	},
+	"module": "src/index.ts",
+	"types": "src/index.ts",
+	"main": "src/index.ts"
 }

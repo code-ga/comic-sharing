@@ -1,9 +1,9 @@
-import { logger } from "../utils/logger";
 import { eq } from "drizzle-orm";
 import Elysia from "elysia";
 import { db } from "../database";
 import { table } from "../database/schema";
-import { AppState } from "../database/schema/app";
+import type { AppState } from "../database/schema/app";
+import { logger } from "../utils/logger";
 
 export class AppStateService {
 	instanceId: string;

@@ -2,10 +2,10 @@ import { Type } from "@sinclair/typebox";
 import { eq, sql } from "drizzle-orm";
 import Elysia, { status } from "elysia";
 import { db } from "../database";
+import { table as schema } from "../database/schema";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
-import { table as schema } from "../database/schema";
 
 export const chaptersRoute = new Elysia({ prefix: "/chapters" })
 	.use(authenticationMiddleware)

@@ -1,12 +1,20 @@
 import { Type } from "@sinclair/typebox";
-import { eq, gte, and, gt, sql, InferInsertModel, inArray } from "drizzle-orm";
+import {
+	and,
+	eq,
+	gt,
+	gte,
+	type InferInsertModel,
+	inArray,
+	sql,
+} from "drizzle-orm";
 import Elysia, { t } from "elysia";
 import { db } from "../database";
+import table, { table as schema } from "../database/schema";
 import { dbSchemaTypes } from "../database/types";
 import { authenticationMiddleware } from "../middleware/auth";
 import { baseResponseSchema, errorResponseSchema } from "../types";
-import table, { table as schema } from "../database/schema";
-import { removeImage, uploadImages, calculateFileHash } from "../utils/files";
+import { calculateFileHash, removeImage, uploadImages } from "../utils/files";
 import { getOrCreateSystemProfile } from "../utils/system-user";
 
 export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
@@ -178,7 +186,10 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							.returning();
 
 						// Update chapter.pageIds with new page IDs appended
-						const newPageIds = [...existingPages.map((p) => p.id), ...inserted.map((p) => p.id)];
+						const newPageIds = [
+							...existingPages.map((p) => p.id),
+							...inserted.map((p) => p.id),
+						];
 						await tx
 							.update(schema.chapters)
 							.set({
@@ -738,7 +749,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 							existingTask.status === "failed"
 						) {
 							// Create new task
-							task = await db
+							[task] = await db
 								.insert(table.taskTable)
 								.values({
 									status: "pending",
@@ -746,12 +757,11 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 									chapterPageSubtitlesId: subtitle!.id,
 									metadata: { isInPaint: inpaintImage },
 								})
-								.returning()
-								.then((res) => res[0]);
+								.returning();
 						}
 					} else {
 						// Create new task
-						task = await db
+						[task] = await db
 							.insert(table.taskTable)
 							.values({
 								status: "pending",
@@ -759,8 +769,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 								chapterPageSubtitlesId: subtitle!.id,
 								metadata: { isInPaint: inpaintImage },
 							})
-							.returning()
-							.then((res) => res[0]);
+							.returning();
 					}
 
 					return ctx.status(200, {

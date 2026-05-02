@@ -37,7 +37,9 @@ export type PaginatedResponse<T extends TSchema> = Static<
 	ReturnType<typeof paginatedResponseSchema<T>>
 >;
 
-export const cursorPaginatedResponseSchema = <T extends TSchema>(dataSchema: T) => {
+export const cursorPaginatedResponseSchema = <T extends TSchema>(
+	dataSchema: T,
+) => {
 	return baseResponseSchema(
 		t.Object({
 			items: t.Array(dataSchema),
@@ -65,7 +67,6 @@ export const errorResponseSchema = t.Object({
 	),
 });
 export type ErrorResponse = Static<typeof errorResponseSchema>;
-
 
 export const OCRPageSchema = z.object({
 	page_language: z.string(),
@@ -100,3 +101,53 @@ export const OCRPageSchema = z.object({
 	),
 });
 export type OCRPageOutput = z.infer<typeof OCRPageSchema>;
+
+export const PageSummarySchema = z.object({
+	summary: z.string(),
+
+	characters: z.array(z.string()),
+
+	setting: z.string(),
+
+	objects: z.array(z.string()),
+
+	emotions: z.array(z.string()),
+
+	scene_type: z.enum([
+		"dialogue",
+		"action",
+		"exposition",
+		"comedy",
+		"romance",
+		"horror",
+		"suspense",
+		"transition",
+	]),
+
+	action_level: z.enum(["low", "medium", "high"]),
+
+	important_events: z.array(z.string()),
+
+	content_flags: z.array(z.string()),
+});
+
+export type PageSummary = z.infer<typeof PageSummarySchema>;
+
+export const ChapterSummarySchema = z.object({
+	summary: z.string(),
+	major_events: z.array(z.string()),
+	characters: z.array(z.string()),
+	themes: z.array(z.string()),
+	emotional_arc: z.array(z.string()),
+	chapter_type: z.enum([
+		"action",
+		"dialogue",
+		"exposition",
+		"romance",
+		"comedy",
+		"horror",
+		"mixed",
+	]),
+});
+
+export type ChapterSummary = z.infer<typeof ChapterSummarySchema>;
