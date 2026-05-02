@@ -55,6 +55,7 @@ export const chapters = pgTable("chapter", {
 
 	pageIds: text("page_ids").notNull().array().default([]),
 
+	// Ai Generated data
 	summary: text("summary"),
 	majorEvents: text("major_events").array(),
 	characters: text("characters").array(),
@@ -95,10 +96,17 @@ export const chapterPages = pgTable("chapter_pages", {
 	pageNumber: serial("page_number").notNull(),
 	imageUrl: text("image_url").notNull(),
 	/**
+	 * @deprecated this is very new and unstable field please currently considering that store the default value defined below
 	 * If this is novel we just saving content.
 	 * If manga or non-text media we going to using ocr or like that
+	 * This content save the Ai processed content
 	 */
-	content: text("content"),
+	content: text("content").default("").notNull(),
+	/**
+	 * @deprecated this is very new and unstable field please currently considering that store the default value defined below
+	 * This content save the Raw text from ocr
+	 */
+	rawContent: text("raw_content").default("").notNull(),
 
 	subtitleIds: text("subtitle_ids").notNull().array().default([]),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -134,6 +142,7 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 
 	authorId: text("author_id").notNull(),
 
+	// Ai Generated data
 	// ocr result
 	boxs: jsonb("box")
 		.notNull()
@@ -142,7 +151,7 @@ export const chapterPageSubtitles = pgTable("chapter_page_subtitle", {
 	content: text(),
 	readingDirection: text().$type<"ltr" | "rtl" | "vertical">(),
 
-	// summary result
+	// Ai Generated Summarized Content
 	summary: text(),
 	characters: text().array(),
 	setting: text(),

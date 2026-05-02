@@ -171,6 +171,63 @@ export default function ReadChapterPage({
 						<p className="text-sm text-muted-foreground">{comic.title}</p>
 					</div>
 
+					{/* Chapter AI Analysis */}
+					{chapter.summary && (
+						<div className="max-w-4xl mx-auto mb-12 rounded-3xl border border-primary/20 bg-primary/5 p-6 overflow-hidden relative glass">
+							<div className="absolute -top-10 -right-10 p-4 opacity-10">
+								<svg className="w-48 h-48 text-primary" fill="currentColor" viewBox="0 0 24 24">
+									<path d="M11.666 4.354a.75.75 0 011.334 0l1.972 3.996a.75.75 0 00.354.354l3.996 1.972a.75.75 0 010 1.334l-3.996 1.972a.75.75 0 00-.354.354l-1.972 3.996a.75.75 0 01-1.334 0l-1.972-3.996a.75.75 0 00-.354-.354l-3.996-1.972a.75.75 0 010-1.334l3.996-1.972a.75.75 0 00.354-.354l1.972-3.996zM4.75 3a.75.75 0 01.75.75v1.5h1.5a.75.75 0 010 1.5h-1.5v1.5a.75.75 0 01-1.5 0v-1.5h-1.5a.75.75 0 010-1.5h1.5v-1.5A.75.75 0 014.75 3z" />
+								</svg>
+							</div>
+							
+							<div className="relative z-10 space-y-6">
+								<div className="flex items-center gap-2">
+									<svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+									</svg>
+									<h2 className="text-lg font-semibold text-foreground">Chapter Insights</h2>
+									{chapter.chapterType && (
+										<span className="ml-auto inline-flex items-center rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary capitalize backdrop-blur-md">
+											{chapter.chapterType}
+										</span>
+									)}
+								</div>
+
+								<p className="text-sm leading-relaxed text-muted-foreground">
+									{chapter.summary}
+								</p>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-primary/10">
+									{chapter.characters && chapter.characters.length > 0 && (
+										<div>
+											<h3 className="text-xs font-medium uppercase tracking-wider text-foreground mb-2">Key Characters</h3>
+											<div className="flex flex-wrap gap-1.5">
+												{chapter.characters.map((char: string, i: number) => (
+													<span key={i} className="inline-flex items-center rounded-md bg-background/50 border border-border px-2 py-1 text-xs font-medium text-muted-foreground">
+														{char}
+													</span>
+												))}
+											</div>
+										</div>
+									)}
+									
+									{chapter.themes && chapter.themes.length > 0 && (
+										<div>
+											<h3 className="text-xs font-medium uppercase tracking-wider text-foreground mb-2">Themes</h3>
+											<div className="flex flex-wrap gap-1.5">
+												{chapter.themes.map((theme: string, i: number) => (
+													<span key={i} className="inline-flex items-center rounded-md bg-primary/10 text-primary px-2 py-1 text-xs font-medium border border-primary/20">
+														{theme}
+													</span>
+												))}
+											</div>
+										</div>
+									)}
+								</div>
+							</div>
+						</div>
+					)}
+
 					{/* Reading Mode Toggle (Bilingual/Original) */}
 					<div className="flex justify-center mb-4">
 						<div className="inline-flex items-center gap-2 p-1 bg-muted/30 rounded-xl">
@@ -229,6 +286,86 @@ export default function ReadChapterPage({
 								</div>
 							);
 
+							const AIBox = (
+								<div className="w-80 flex shrink-0 flex-col rounded-3xl border border-primary/20 bg-primary/5 p-4 h-fit sticky top-24 overflow-y-auto max-h-[calc(100vh-8rem)]">
+									<div className="mb-4 flex items-center justify-between gap-3">
+										<div className="flex items-center gap-2">
+											<svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+											</svg>
+											<h3 className="text-base font-semibold text-foreground">
+												AI Insights
+											</h3>
+										</div>
+										{pageSubtitle?.scene_type && (
+											<span className="inline-flex rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary capitalize backdrop-blur-md">
+												{pageSubtitle.scene_type.replace('_', ' ')}
+											</span>
+										)}
+									</div>
+
+									{pageSubtitle?.summary ? (
+										<div className="space-y-4 text-sm text-foreground">
+											<div>
+												<p className="leading-relaxed text-muted-foreground">{pageSubtitle.summary}</p>
+											</div>
+											
+											{pageSubtitle.setting && (
+												<div>
+													<h4 className="font-medium text-foreground mb-1 text-xs uppercase tracking-wider">Setting</h4>
+													<p className="text-muted-foreground">{pageSubtitle.setting}</p>
+												</div>
+											)}
+
+											{pageSubtitle.characters && pageSubtitle.characters.length > 0 && (
+												<div>
+													<h4 className="font-medium text-foreground mb-1 text-xs uppercase tracking-wider">Characters</h4>
+													<div className="flex flex-wrap gap-1.5">
+														{pageSubtitle.characters.map((char: string, i: number) => (
+															<span key={i} className="inline-flex items-center rounded-md bg-background border border-border px-2 py-1 text-xs font-medium text-muted-foreground">
+																{char}
+															</span>
+														))}
+													</div>
+												</div>
+											)}
+
+											{pageSubtitle.emotions && pageSubtitle.emotions.length > 0 && (
+												<div>
+													<h4 className="font-medium text-foreground mb-1 text-xs uppercase tracking-wider">Emotions</h4>
+													<div className="flex flex-wrap gap-1.5">
+														{pageSubtitle.emotions.map((emotion: string, i: number) => (
+															<span key={i} className="inline-flex items-center rounded-md bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-500">
+																{emotion}
+															</span>
+														))}
+													</div>
+												</div>
+											)}
+
+											{pageSubtitle.action_level && (
+												<div>
+													<h4 className="font-medium text-foreground mb-1 text-xs uppercase tracking-wider">Action Level</h4>
+													<div className="flex items-center gap-2">
+														<div className="h-1.5 flex-1 bg-background border border-border rounded-full overflow-hidden">
+															<div 
+																className={`h-full ${pageSubtitle.action_level === 'high' ? 'bg-rose-500' : pageSubtitle.action_level === 'medium' ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+																style={{ width: pageSubtitle.action_level === 'high' ? '100%' : pageSubtitle.action_level === 'medium' ? '60%' : '30%' }}
+															/>
+														</div>
+														<span className="text-xs capitalize text-muted-foreground">{pageSubtitle.action_level}</span>
+													</div>
+												</div>
+											)}
+										</div>
+									) : (
+										<div className="grow rounded-3xl bg-background/50 p-4 text-sm text-muted-foreground text-center border border-border/50">
+											No AI insights available for this page yet.
+										</div>
+									)}
+								</div>
+							);
+
 							return (
 								<div
 									key={page.id}
@@ -236,7 +373,7 @@ export default function ReadChapterPage({
 								>
 									{/* Left Column */}
 									<div className="hidden lg:flex justify-end">
-										{isOCRLeft ? OCRBox : <div className="w-80" />}
+										{isOCRLeft ? OCRBox : AIBox}
 									</div>
 
 									{/* Center Column (Image) */}
@@ -246,21 +383,22 @@ export default function ReadChapterPage({
 											alt={`Page ${page.pageNumber}`}
 											width={800}
 											height={1200}
-											className="w-full h-auto"
+											className="w-full h-auto rounded-md shadow-sm"
 										/>
-										<div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/60 backdrop-blur-md text-white text-xs font-medium rounded-full border border-white/10">
+										<div className="absolute bottom-4 right-4 px-3 py-1.5 bg-black/60 backdrop-blur-md text-white text-xs font-medium rounded-full border border-white/10 shadow-lg">
 											Page {page.pageNumber}
 										</div>
 										
-										{/* Mobile OCR Toggle or Display */}
-										<div className="lg:hidden mt-4 px-4">
+										{/* Mobile Boxes Toggle or Display */}
+										<div className="lg:hidden mt-4 px-4 space-y-4">
 											{OCRBox}
+											{AIBox}
 										</div>
 									</div>
 
 									{/* Right Column */}
 									<div className="hidden lg:flex justify-start">
-										{!isOCRLeft ? OCRBox : <div className="w-80" />}
+										{!isOCRLeft ? OCRBox : AIBox}
 									</div>
 								</div>
 							);
