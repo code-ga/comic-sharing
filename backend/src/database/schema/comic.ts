@@ -53,7 +53,7 @@ export const chapters = pgTable("chapter", {
 
 	title: text("title").notNull(),
 
-	pageIds: text("page_ids").notNull().array().default([]),
+	pageIds: serial("page_ids").notNull().array().default([]),
 
 	// Ai Generated data
 	summary: text("summary"),

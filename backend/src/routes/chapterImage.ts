@@ -193,7 +193,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						await tx
 							.update(schema.chapters)
 							.set({
-								pageIds: sql`ARRAY[${newPageIds}]::text[]`,
+								pageIds: newPageIds,
 							})
 							.where(eq(schema.chapters.id, chapterId));
 
@@ -292,7 +292,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						await tx
 							.update(schema.chapters)
 							.set({
-								pageIds: sql`ARRAY[${updatedPageIds}]::text[]`,
+								pageIds: updatedPageIds,
 							})
 							.where(eq(schema.chapters.id, pageToDelete.chapterId));
 
@@ -402,7 +402,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						await tx
 							.update(schema.chapters)
 							.set({
-								pageIds: sql`ARRAY[${updatedPageIds}]::text[]`,
+								pageIds: updatedPageIds,
 							})
 							.where(eq(schema.chapters.id, firstChapterId));
 
@@ -592,7 +592,7 @@ export const chapterImagesRoute = new Elysia({ prefix: "/chapter-images" })
 						await tx
 							.update(schema.chapters)
 							.set({
-								pageIds: sql`ARRAY[${finalPageIds}]::text[]`,
+								pageIds: finalPageIds,
 							})
 							.where(eq(schema.chapters.id, chapterId));
 
