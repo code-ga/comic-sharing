@@ -56,6 +56,48 @@ export const studioRouter = new Elysia({ prefix: "/db/studio" })
 			},
 		},
 	)
+	.all("/", async ({ request, path, set }) => {
+		const relativePath = path.replace("/db/studio", "") || "/";
+		const url = new URL(request.url);
+		const targetUrl = `http://drizzle-studio:4983${relativePath}${url.search}`;
+
+		try {
+			const response = await fetch(targetUrl, {
+				method: request.method,
+				headers: request.headers,
+				body: request.body,
+				redirect: "manual",
+			});
+
+			const contentType = response.headers.get("content-type");
+
+			// Handle HTML rewriting to fix absolute paths
+			if (contentType?.includes("text/html")) {
+				let html = await response.text();
+
+				// Replace absolute paths in href and src with proxied paths
+				html = html.replace(/(href|src)=\"\//g, '$1="/db/studio/');
+
+				const newHeaders = new Headers(response.headers);
+				newHeaders.delete("content-length");
+
+				return new Response(html, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: newHeaders,
+				});
+			}
+
+			return response;
+		} catch (error) {
+			console.error("Drizzle Studio Proxy error:", error);
+			set.status = 502;
+			return {
+				error: "Bad Gateway",
+				message: "Drizzle Studio is unavailable",
+			};
+		}
+	})
 	.ws("/*", {
 		open(ws) {
 			const path = (ws.data as any).path as string;
