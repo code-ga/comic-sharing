@@ -61,6 +61,7 @@ services:
     environment:
       - PORT=4983
       - MASTERPASS=${MASTERPASS}
+      - DB_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     volumes:
       - studio-data:/app
     depends_on:
