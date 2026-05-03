@@ -402,7 +402,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📞 Support
 
-For issues, questions, or suggestions, please [open an issue](https://github.com/your-org/comic-sharing/issues) on GitHub.
+For issues, questions, or suggestions, please [open an issue](https://github.com/code-ga/comic-sharing/issues) on GitHub.
 
 ---
 
