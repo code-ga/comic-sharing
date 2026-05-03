@@ -30,8 +30,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      drizzle-studio:
-        condition: service_healthy
     networks:
       - comic-sharing-network
     restart: unless-stopped
