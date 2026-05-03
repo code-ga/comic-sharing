@@ -8,6 +8,7 @@ import { apiRouter } from "./routes";
 import { AiWorkerSerivce } from "./services/AiWorker";
 import { logger } from "./utils/logger";
 import { generateSeedRoles } from "./utils/role";
+import { studioRouter } from "./routes/studio";
 
 await generateSeedRoles();
 
@@ -29,6 +30,7 @@ const app = new Elysia()
 			},
 		}),
 	)
+	.use(studioRouter)
 	.use(apiRouter);
 
 app.get("/permissions", async (_) => {

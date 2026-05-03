@@ -27,6 +27,7 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - **Types**: Type-safe schemas using [@sinclair/typebox](https://github.com/sinclairzx81/typebox)
 - **Logging**: Pino logger with caller tracking
 - **API Documentation**: OpenAPI/Swagger via `@elysiajs/openapi`
+- **Database Tooling**: Drizzle Studio integrated via backend proxy at `/db/studio` (using `ghcr.io/drizzle-team/gateway`)
 
 ### Database Schema
 - All comic-related entities (comics, chapters, chapterPages, chapterPageSubtitles) require an `authorId` field referencing the profile table.
@@ -57,7 +58,8 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - `backend/src/utils/system-user.ts` - Utility functions for managing the system user account. Provides `getOrCreateSystemUser()` to ensure a system user and profile exist in the database for automated actions, and `getSystemUserId()` and `getSystemProfileId()` to retrieve their IDs. Used when authorId is required for system-generated entities (comics, chapters, etc.) to avoid relation errors.
 - `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, cursorPaginatedResponse, errorResponse)
 - `backend/src/routes/comic.ts` - Comic CRUD routes with cursor-based pagination and file upload support. Updated to use multipart/form-data for both POST and PUT endpoints, with proper handling of categories and genres as arrays.
-- `backend/src/routes/chapters.ts` - Chapter CRUD routes for comics.
+- `backend/src/routes/studio.ts` - Proxy router for Drizzle Studio. Forwards requests to the internal Docker service, rewrites HTML asset paths, and bridges WebSocket connections for real-time updates. Hidden from OpenAPI docs.
+- `backend/scripts/generate-masterpass.ts` - Utility script to generate a secure random `MASTERPASS` for Drizzle Studio Gateway.
 
 #### Configuration
 - `backend/drizzle.config.ts` - Drizzle Kit configuration for migrations

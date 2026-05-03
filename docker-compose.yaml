@@ -57,8 +57,25 @@ services:
       - .env
       - frontend/.env
 
+  drizzle-studio:
+    image: ghcr.io/drizzle-team/gateway:latest
+    container_name: comic-sharing-drizzle-studio
+    environment:
+      - PORT=4983
+      - MASTERPASS=${MASTERPASS}
+    volumes:
+      - studio-data:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - comic-sharing-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+    driver: local
+  studio-data:
     driver: local
 
 networks:
