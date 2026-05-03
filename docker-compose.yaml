@@ -68,6 +68,8 @@ services:
         condition: service_healthy
     networks:
       - comic-sharing-network
+    env_file:
+      - .env
     restart: unless-stopped
 
   nginx:
