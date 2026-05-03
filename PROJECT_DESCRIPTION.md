@@ -58,7 +58,8 @@ This proxy hides the actual backend host from the browser, allows changing backe
 - `backend/src/utils/system-user.ts` - Utility functions for managing the system user account. Provides `getOrCreateSystemUser()` to ensure a system user and profile exist in the database for automated actions, and `getSystemUserId()` and `getSystemProfileId()` to retrieve their IDs. Used when authorId is required for system-generated entities (comics, chapters, etc.) to avoid relation errors.
 - `backend/src/types/index.ts` - Shared API response types (baseResponse, paginatedResponse, cursorPaginatedResponse, errorResponse)
 - `backend/src/routes/comic.ts` - Comic CRUD routes with cursor-based pagination and file upload support. Updated to use multipart/form-data for both POST and PUT endpoints, with proper handling of categories and genres as arrays.
-- `backend/src/routes/studio.ts` - Proxy router for Drizzle Studio. Forwards requests to the internal Docker service, rewrites HTML asset paths, and bridges WebSocket connections for real-time updates. Hidden from OpenAPI docs.
+- `backend/src/routes/chapters.ts` - Chapter CRUD routes for comics.
+- **Nginx Proxy** - A reverse proxy sitting in front of the backend infrastructure. It handles port `${BACKEND_PORT:-3001}`, routing `/db/studio/` to Drizzle Studio and all other traffic to the Elysia backend. Supports WebSocket bridging and HTML asset path rewriting.
 - `backend/scripts/generate-masterpass.ts` - Utility script to generate a secure random `MASTERPASS` for Drizzle Studio Gateway.
 
 #### Configuration
