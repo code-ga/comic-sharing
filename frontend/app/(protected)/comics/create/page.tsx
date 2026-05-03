@@ -32,12 +32,14 @@ export default function CreateComicPage() {
 			if (title.trim()) formData.append("title", title.trim());
 			if (description.trim())
 				formData.append("description", description.trim());
-			if (categoryArray.length)
-				categoryArray.map((data) =>
-					formData.append("categories", String(data)),
-				);
-			if (genreArray.length)
-				genreArray.map((data) => formData.append("genres", data));
+			// if (categoryArray.length)
+			// 	categoryArray.map((data) =>
+			// 		formData.append("categories", String(data)),
+			// 	);
+			// if (genreArray.length)
+			// 	genreArray.map((data) => formData.append("genres", data));
+			formData.append("categories", JSON.stringify(categoryArray));
+			formData.append("genres", JSON.stringify(genreArray));
 			if (thumbnail) formData.append("thumbnail", thumbnail);
 			const res = await fetch(`${BACKEND_URL}/api/comics`, {
 				method: "POST",
@@ -49,7 +51,7 @@ export default function CreateComicPage() {
 			});
 			const data = await res.json();
 			const error = res.ok ? null : data;
-
+			console.log(error)
 			if (error) throw new Error(getEdenErrorMessage(error));
 			return data;
 		},

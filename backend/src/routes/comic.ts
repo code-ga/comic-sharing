@@ -277,7 +277,7 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 						body: t.Object({
 							title: t.String({ minLength: 1 }),
 							description: t.String({ minLength: 1 }),
-							thumbnail: t.Optional(t.File()),
+							thumbnail: t.Optional(t.File({ type: "image/*" })),
 							categories: t.Optional(t.Array(t.String())),
 							genres: t.Optional(t.Array(t.String())),
 						}),
@@ -389,7 +389,7 @@ export const comicsRoute = new Elysia({ prefix: "/comics" })
 							t.Object({
 								title: t.String({ minLength: 1 }),
 								description: t.String({ minLength: 1 }),
-								thumbnail: t.Optional(t.File()),
+								thumbnail: t.Optional(t.File({ type: "image/*" })),
 								categories: t.Optional(t.Array(t.String())),
 								genres: t.Optional(t.Array(t.String())),
 							}),
